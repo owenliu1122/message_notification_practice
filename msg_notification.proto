@@ -1,0 +1,28 @@
+syntax = "proto3";
+package msg.notification;
+
+
+import "github.com/mwitkow/go-proto-validators/validator.proto";
+import "google/api/annotations.proto";
+
+
+option go_package = "pb";
+
+
+message MsgNotificationRequest {
+    string content = 1;
+    int32  type = 2;
+    uint64 group = 3;
+    // repeated uint64 groups = 3;
+}
+
+
+message MsgNotificationResponse {
+    string status = 1;
+    int32  code = 2;
+}
+
+
+service MsgNotification {
+    rpc CheckIn(MsgNotificationRequest) returns (MsgNotificationResponse);
+}
