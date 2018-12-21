@@ -121,6 +121,7 @@ func notificationProc(cmd *cobra.Command, args []string) {
 
 						var users []model.User
 
+						// TODO: 需要整理放入 service 层
 						if e := db.Raw("select * from users where id in (select user_id from group_user_relations where group_id = ?)",
 							rq.Group).Scan(&users).Error; e != nil {
 							log.Error("get group_user_relations failed, err: ", e)
@@ -243,20 +244,6 @@ func senderProc(cmd *cobra.Command, args []string) {
 						if err != nil {
 							log.Error("get an error, handle it, err: ", err)
 						}
-
-						//hystrix.ConfigureCommand()
-						//hystrix.Go( jobsCmdType + " sender", func() error {
-						//	// talk to other services
-						//	if err := handler(&userMsg); err != nil {
-						//		log.Error("sender notification failed, err: ", err)
-						//		return err
-						//	}
-						//	return nil
-						//
-						//}, func(err error) error {
-						//	log.Error("get an error, handle it")
-						//	return nil
-						//})
 					}
 				}
 			}
