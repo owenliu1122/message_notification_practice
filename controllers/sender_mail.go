@@ -5,7 +5,6 @@ import (
 	"github.com/eapache/go-resiliency/retrier"
 	log "gopkg.in/cihub/seelog.v2"
 	"gopkg.in/mailgun/mailgun-go.v1"
-	"html/template"
 	"message_notification_practice/model"
 	"time"
 )
@@ -23,7 +22,9 @@ func NewMailSenderController(domain, apiKey, pubKey string) *MailSenderControlle
 func (ctl *MailSenderController) Handler(msg *model.UserMsg) error {
 
 	r := retrier.New(retrier.ExponentialBackoff(5, 20*time.Millisecond), nil)
-	body := template.New()
+
+	//body := template.New() // TODO: HTML mail is not implementation.
+
 	err := r.Run(func() error {
 
 		return errors.New("sender handler happens error")
