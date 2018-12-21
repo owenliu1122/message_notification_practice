@@ -1,12 +1,17 @@
 package services
 
-import "message_notification_practice/model"
+import (
+	"github.com/jinzhu/gorm"
+	"message_notification_practice/model"
+)
 
-func NewGroupService() *GroupService {
-	return &GroupService{}
+func NewGroupService(db *gorm.DB) *GroupService {
+	return &GroupService{db: db}
 }
 
-type GroupService struct{}
+type GroupService struct {
+	db *gorm.DB
+}
 
 func (u *GroupService) Create(user *model.Group) error {
 	panic("not implemented")
@@ -16,8 +21,13 @@ func (u *GroupService) Update(user *model.Group, fields map[string]interface{}) 
 	panic("not implemented")
 }
 
-func (u *GroupService) Find(id uint) (*model.Group, error) {
-	panic("not implemented")
+func (u *GroupService) Find(id uint) ([]model.Group, error) {
+
+	var groups []model.Group
+
+	err := u.db.Raw("select * from groups").Scan(&groups).Error
+
+	return groups, err
 }
 
 func (u *GroupService) FindByName(name string) (*model.Group, error) {
