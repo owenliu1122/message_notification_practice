@@ -38,9 +38,28 @@ var dashboardCmd = &cobra.Command{
 		e.Use(middleware.Recover())
 
 		grpCtl := controllers.NewGroupController(services.NewGroupService(db))
+		usrCtl := controllers.NewUserController(services.NewUserService(db))
+		gurCtl := controllers.NewGroupUserRelationController(services.NewGroupUserRelationService(db))
 
-		// Routes
-		e.GET("/dashboard/groups/list", grpCtl.List)
+		// Groups Routes
+		e.GET("/dashboard/groups", grpCtl.List)
+		e.POST("/dashboard/groups", grpCtl.Create)
+		e.PUT("/dashboard/groups", grpCtl.Update)
+		e.DELETE("/dashboard/groups", grpCtl.Delete)
+
+		// Users Routes
+		e.GET("/dashboard/users", usrCtl.List)
+		e.POST("/dashboard/users", usrCtl.Create)
+		e.PUT("/dashboard/users", usrCtl.Update)
+		e.DELETE("/dashboard/users", usrCtl.Delete)
+
+		// Group and User Relations Routes
+		e.GET("/dashboard/group_user_relations", gurCtl.ListMembers)
+		e.GET("/dashboard/group_user_relations/available_members", gurCtl.AvailableMembers)
+		e.POST("/dashboard/group_user_relations", gurCtl.AddMembers)
+		//e.PUT("/dashboard/users", gurCtl.Update)
+		//e.PUT("/dashboard/users", gurCtl.Update)
+		e.DELETE("/dashboard/group_user_relations", gurCtl.DeleteMembers)
 
 		// Start server
 		e.Logger.Fatal(e.Start(":8000"))

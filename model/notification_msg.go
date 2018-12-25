@@ -10,7 +10,7 @@ type Notification struct {
 	Notification string
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
-	DeletedAt    time.Time
+	DeletedAt    *time.Time
 }
 
 type NotificationService interface {
