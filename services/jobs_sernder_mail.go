@@ -1,4 +1,4 @@
-package controllers
+package services
 
 import (
 	"errors"
@@ -9,28 +9,30 @@ import (
 	"time"
 )
 
-type MailSenderController struct {
+func NewMailSenderService(mg interface{}) *MailSenderService {
+	return &MailSenderService{mg: mg.(mailgun.Mailgun)}
+}
+
+type MailSenderService struct {
 	mg mailgun.Mailgun
 }
 
-func NewMailSenderController(domain, apiKey, pubKey string) *MailSenderController {
-	return &MailSenderController{
-		mg: mailgun.NewMailgun(domain, apiKey, pubKey),
-	}
-}
+func (svc *MailSenderService) Handler(msg *model.UserMsg) error {
 
-func (ctl *MailSenderController) Handler(msg *model.UserMsg) error {
+	// TODO: not implementation
+	log.Debugf("MailSenderService: userMsg: %#v\n", msg)
+	return nil
 
 	r := retrier.New(retrier.ExponentialBackoff(5, 20*time.Millisecond), nil)
 
-	//body := template.New() // TODO: HTML mail is not implementation.
+	// body := template.New() // TODO: HTML mail is not implementation.
 
 	err := r.Run(func() error {
 
 		return errors.New("sender handler happens error")
 
 		log.Info(time.Now().Second())
-		resp, id, err := ctl.mg.Send(ctl.mg.NewMessage(
+		resp, id, err := svc.mg.Send(svc.mg.NewMessage(
 			"aaa <83214742@qq.com>",
 			"Hello",
 			msg.Content,

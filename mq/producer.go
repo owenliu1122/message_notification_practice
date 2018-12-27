@@ -1,45 +1,90 @@
 package mq
 
 import (
+	"errors"
+	"fmt"
 	"github.com/streadway/amqp"
 	log "gopkg.in/cihub/seelog.v2"
 )
 
-func producerProc(id int, info MQInfo) {
-	var conn *amqp.Connection
-	var channel *amqp.Channel
-	//var count = 0
-	var err error
+/*
+Producer
+*/
 
-	conn, err = amqp.Dial(info.Cfg.URL)
-	failOnErr(err, "failed to connect tp rabbitmq")
-	defer conn.Close()
-
-	channel, err = conn.Channel()
-	failOnErr(err, "failed to open a channel")
-	defer channel.Close()
-
-	for {
-		select {
-		case msg, ok := <-info.MsgChan:
-			if ok {
-				log.Debugf("producer id: %d\n", id)
-
-				channel.Publish(info.Cfg.Exchange, info.Cfg.Queue, false, false, amqp.Publishing{
-					ContentType: "text/plain",
-					Body:        msg.([]byte),
-				})
-			}
-		}
-	}
+type BaseProducer struct {
+	Exchange   string
+	RoutingKey string
+	Mandatory  bool
+	Immediate  bool
 }
 
-// 启动消费协程
-func ProducerStart(routineNum int, info MQInfo) error {
+type ProducerContext struct {
+	//ChannelKey		string
+	BaseProducer
+	Channel *amqp.Channel
+}
 
-	for i := 0; i < routineNum; i++ {
-		go producerProc(i, info)
+func (mq *BaseMq) InitProducer(exchange, routingKey string) error {
+	mq.pc = &ProducerContext{
+		BaseProducer: BaseProducer{
+			Exchange:   exchange,
+			RoutingKey: routingKey,
+		},
 	}
 
 	return nil
+}
+
+func (mq *BaseMq) refreshProducerChannel() error {
+	var err error
+
+	err = mq.refreshMqConnection()
+	if err != nil {
+		return errors.New(fmt.Sprintf("refreshMqConnection failed, err: %s", err.Error()))
+	}
+
+	mq.pc.Channel, err = mq.conn.Connection.Channel()
+
+	return err
+}
+
+func (mq *BaseMq) Send(exchange, routingKey string, body []byte) error {
+
+	if mq.pc == nil {
+		return errors.New("MQ producer has not been initialized")
+	}
+
+	if err := mq.refreshProducerChannel(); err != nil {
+		return errors.New(fmt.Sprintf("refreshProducerChannel failed, err: %s", err.Error()))
+	}
+
+	if "" != exchange {
+		mq.pc.Exchange = exchange
+	}
+
+	if "" != routingKey {
+		mq.pc.RoutingKey = routingKey
+	}
+
+	return mq.pc.Channel.Publish(mq.pc.Exchange,
+		mq.pc.RoutingKey,
+		mq.pc.Mandatory,
+		mq.pc.Immediate,
+		amqp.Publishing{
+			ContentType: "text/plain",
+			Body:        body,
+		})
+}
+
+func (mq *BaseMq) closeProducer() error {
+	var err error
+	// 关闭生产者 Channel
+	if mq.pc != nil && mq.pc.Channel != nil {
+		err = mq.pc.Channel.Close()
+		if err != nil {
+			log.Error("close producer failed, err: ", err)
+		}
+	}
+
+	return err
 }

@@ -1,18 +1,40 @@
 package controllers
 
 import (
+	"context"
+	"encoding/json"
+	"github.com/streadway/amqp"
+	log "gopkg.in/cihub/seelog.v2"
+
 	"message_notification_practice/model"
+	"message_notification_practice/services"
 )
 
-type SenderController struct{}
-
-type SenderHandler func(msg *model.UserMsg) error
-
-func NewSenderController(tp string, params ...interface{}) SenderControllerInterface {
-	//return NewMailSenderController(params[0].(string), params[0].(string), params[0].(string))
-	return NewMailSenderController(params[0].(string), params[1].(string), params[2].(string))
+type SenderController struct {
+	sendSvc services.SenderService
 }
 
-type SenderControllerInterface interface {
-	Handler(msg *model.UserMsg) error
+func NewSenderController(sendSvc services.SenderService) *SenderController {
+	return &SenderController{
+		sendSvc: sendSvc,
+	}
+}
+
+func (ctl *SenderController) Handler(ctx context.Context, msg *amqp.Delivery) {
+
+	userMsg := model.UserMsg{}
+
+	if err := json.Unmarshal(msg.Body, &userMsg); err != nil {
+		log.Error("Unmarshal MsgNotificationRequest Body failed, err: ", err)
+		return
+	}
+
+	log.Debugf("SenderController:%T, %#v\n", ctl.sendSvc, userMsg)
+
+	if err := ctl.sendSvc.Handler(&userMsg); err != nil {
+		log.Error("get an error, handle it, err: ", err)
+		return
+	}
+
+	return
 }

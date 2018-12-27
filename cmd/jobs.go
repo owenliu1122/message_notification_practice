@@ -1,18 +1,17 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
-	//"github.com/afex/hystrix-go/hystrix"
-	"github.com/eapache/go-resiliency/retrier"
+	"gopkg.in/mailgun/mailgun-go.v1"
+	"message_notification_practice/services"
+
+	"context"
 	"github.com/jinzhu/gorm"
 	"github.com/spf13/cobra"
-	"github.com/streadway/amqp"
 	log "gopkg.in/cihub/seelog.v2"
 	"message_notification_practice/controllers"
-	"message_notification_practice/model"
+	//"message_notification_practice/model"
 	"message_notification_practice/mq"
-	"message_notification_practice/pb"
 	"os"
 	"os/signal"
 	"syscall"
@@ -24,21 +23,21 @@ var (
 	jobsCmdType string
 )
 
-var senderMqCfgMap = map[string]mq.MQCfg{
-	model.MsgTypeMail: {
-		URL:      "amqp://liujx:Liujiaxing@localhost:5672/",
-		Queue:    "push.msg.q.notification.mail",
-		Exchange: "t.msg.ex.notification",
+var senderMqCfgMap = map[string]mq.BaseProducer{
+	services.MsgTypeMail: {
+		//URL:      "amqp://liujx:Liujiaxing@localhost:5672/",
+		RoutingKey: "push.msg.q.notification.mail",
+		Exchange:   "t.msg.ex.notification",
 	},
-	model.MsgTypePhone: {
-		URL:      "amqp://liujx:Liujiaxing@localhost:5672/",
-		Queue:    "push.msg.q.notification.phone",
-		Exchange: "t.msg.ex.notification",
+	services.MsgTypePhone: {
+		//URL:      "amqp://liujx:Liujiaxing@localhost:5672/",
+		RoutingKey: "push.msg.q.notification.phone",
+		Exchange:   "t.msg.ex.notification",
 	},
-	model.MsgTypeWeChat: {
-		URL:      "amqp://liujx:Liujiaxing@localhost:5672/",
-		Queue:    "push.msg.q.notification.wechat",
-		Exchange: "t.msg.ex.notification",
+	services.MsgTypeWeChat: {
+		//URL:      "amqp://liujx:Liujiaxing@localhost:5672/",
+		RoutingKey: "push.msg.q.notification.wechat",
+		Exchange:   "t.msg.ex.notification",
 	},
 }
 
@@ -60,6 +59,7 @@ var notificationCmd = &cobra.Command{
 func notificationProc(cmd *cobra.Command, args []string) {
 
 	log.Debug("Start Jobs Notify!")
+	ctx, cancel := context.WithCancel(context.Background())
 
 	db, err := gorm.Open("mysql", "root:123456@/msg_notification?charset=utf8&parseTime=True&loc=Local")
 	if err != nil {
@@ -68,119 +68,55 @@ func notificationProc(cmd *cobra.Command, args []string) {
 	}
 
 	defer db.Close()
-	// 消费
-	chanDepth := 10 * jobsCmdNum
-	rcvDataChan := make(chan interface{}, chanDepth)
-	//sendDataChan := make(chan interface{}, chanDepth)
-
-	consumerInfo := mq.MQInfo{
-		Cfg: mq.MQCfg{
-			URL:      "amqp://liujx:Liujiaxing@localhost:5672/",
-			Queue:    "push.msg.q",
-			Exchange: "t.msg.ex",
-		},
-		MsgChan: rcvDataChan,
-	}
-
-	if err := mq.ConsumerStart(jobsCmdNum, consumerInfo); err != nil {
-		log.Errorf("ConsumerStart err：%v", err)
-		return
-	}
-
-	sendChanMap := map[string]chan interface{}{
-		model.MsgTypeMail:   make(chan interface{}, chanDepth),
-		model.MsgTypePhone:  make(chan interface{}, chanDepth),
-		model.MsgTypeWeChat: make(chan interface{}, chanDepth),
-	}
-
-	for tp, cfg := range senderMqCfgMap {
-		if err := mq.ProducerStart(jobsCmdNum, mq.MQInfo{Cfg: cfg, MsgChan: sendChanMap[tp]}); err != nil {
-			log.Errorf("Jobs nitificaiton start producers failed, err：%v", err)
-			return
-		}
-	}
 
 	// 业务处理协程
-	busiRoutineNum := 3 * jobsCmdNum
 
-	for i := 0; i < busiRoutineNum; i++ {
-		go func(id int, rcvDataChan chan interface{}, sendDataChan map[string]chan interface{}) {
+	cmCfg := mq.MQCfg{
+		URL:      "amqp://liujx:Liujiaxing@localhost:5672/",
+		Queue:    "push.msg.q",
+		Exchange: "t.msg.ex",
+	}
 
-			for {
-				select {
+	mqCli := mq.NewMq(cmCfg)
+	if e := mqCli.InitConnection(); e != nil {
+		log.Error("InitConnection failed, err: ", e)
+	}
+	defer mqCli.Close()
 
-				case msg, ok := <-rcvDataChan:
+	if e := mqCli.InitProducer(cmCfg.Exchange, cmCfg.Queue); e != nil {
+		log.Error("InitProducer failed, err: ", e)
+	}
 
-					if ok {
-						rq := &pb.MsgNotificationRequest{}
+	mqSendSvc := services.NewMqSendService(mqCli, services.NewGroupUserRelationService(db))
 
-						err := json.Unmarshal(msg.(amqp.Delivery).Body, rq)
-						if err != nil {
-							log.Error("Unmarshal MsgNotificationRequest Body failed, err: ", err)
-						}
+	for k := range senderMqCfgMap {
+		mqSendSvc.RegisterExchangeRouting(k, senderMqCfgMap[k])
+	}
 
-						var users []model.User
+	ctl := controllers.NewNotificationController(mqSendSvc)
 
-						// TODO: 需要整理放入 service 层
-						if e := db.Raw("select * from users where id in (select user_id from group_user_relations where group_id = ?)",
-							rq.Group).Scan(&users).Error; e != nil {
-							log.Error("get group_user_relations failed, err: ", e)
-						}
+	for i := 0; i < jobsCmdNum; i++ {
 
-						for _, user := range users {
+		mqCli.RegisterConsumer(
+			fmt.Sprintf("notification[%d]", i),
+			ctl.Handler,
+			mq.BaseConsumer{
+				Queue:   cmCfg.Queue,
+				AutoAck: true,
+			})
+	}
 
-							userMsg := &model.UserMsg{
-								ID:      user.ID,
-								Name:    user.Name,
-								Content: rq.Content,
-								Email:   user.Email,
-								Phone:   user.Phone,
-								WeChat:  user.Wechat,
-							}
-
-							bytes, err := json.Marshal(&userMsg)
-							if err != nil {
-								log.Error("Email marshal UserMsg failed, err: ", err)
-							}
-
-							if len(user.Email) > 0 {
-								if ch, ok := sendDataChan[model.MsgTypeMail]; ok {
-									ch <- bytes
-								} else {
-									log.Error("Email send channel dose not exist.")
-								}
-							}
-
-							if len(user.Phone) > 0 {
-								if ch, ok := sendDataChan[model.MsgTypePhone]; ok {
-									ch <- bytes
-								} else {
-									log.Error("Phone send channel dose not exist.")
-								}
-							}
-
-							if len(user.Wechat) > 0 {
-
-								if ch, ok := sendDataChan[model.MsgTypeWeChat]; ok {
-									ch <- bytes
-								} else {
-									log.Error("Wechat send channel dose not exist.")
-								}
-							}
-						}
-
-						log.Debugf("group_id: %d, %#v\n", rq.Group, users)
-
-						time.Sleep(2 * time.Second) // TODO: remove debug
-					}
-				}
-			}
-		}(i, rcvDataChan, sendChanMap)
+	if e := mqCli.StartConsumer(ctx); e != nil {
+		log.Error("InitConnection failed, err: ", e)
 	}
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 	<-quit
+
+	cancel()
+
+	time.Sleep(2 * time.Second)
 
 	log.Debug("Exit Jobs Notification!")
 }
@@ -195,65 +131,62 @@ func senderProc(cmd *cobra.Command, args []string) {
 
 	log.Debug("Start Jobs Sender!")
 
-	// 消费
-	chanDepth := 10 * jobsCmdNum
-	rcvDataChan := make(chan interface{}, chanDepth)
+	ctx, cancel := context.WithCancel(context.Background())
 
-	mqCfg, ok := senderMqCfgMap[jobsCmdType]
+	var senderJobCfgMap = map[string]mq.MQCfg{
+		services.MsgTypeMail: {
+			URL:      "amqp://liujx:Liujiaxing@localhost:5672/",
+			Queue:    "push.msg.q.notification.mail",
+			Exchange: "t.msg.ex.notification",
+		},
+		services.MsgTypePhone: {
+			URL:      "amqp://liujx:Liujiaxing@localhost:5672/",
+			Queue:    "push.msg.q.notification.phone",
+			Exchange: "t.msg.ex.notification",
+		},
+		services.MsgTypeWeChat: {
+			URL:      "amqp://liujx:Liujiaxing@localhost:5672/",
+			Queue:    "push.msg.q.notification.wechat",
+			Exchange: "t.msg.ex.notification",
+		},
+	}
+	// 消费
+	cmCfg, ok := senderJobCfgMap[jobsCmdType]
 	if !ok {
 		log.Errorf("not found %s mq config info", jobsCmdType)
 		return
 	}
 
-	consumerInfo := mq.MQInfo{
-		Cfg:     mqCfg,
-		MsgChan: rcvDataChan,
+	mqCli := mq.NewMq(cmCfg)
+	if e := mqCli.InitConnection(); e != nil {
+		log.Error("InitConnection failed, err: ", e)
 	}
+	defer mqCli.Close()
 
-	if err := mq.ConsumerStart(jobsCmdNum, consumerInfo); err != nil {
-		log.Errorf("ConsumerStart err：%v", err)
-		return
-	}
-
-	ctl := controllers.NewSenderController(jobsCmdType, domain, privateAPIKey, publicAPIKey)
-	//ctl := controllers.NewSenderController(jobsCmdType)
-
-	// 业务处理协程
+	// TODO: 需要使用统一的接口，这里暂时时候 mail 接口测试
+	sendSvc := services.NewSenderService(jobsCmdType, mailgun.NewMailgun(domain, privateAPIKey, publicAPIKey))
+	ctl := controllers.NewSenderController(sendSvc)
 
 	for i := 0; i < jobsCmdNum; i++ {
 
-		go func(id int, rcvDataChan chan interface{}, handler controllers.SenderHandler) {
+		mqCli.RegisterConsumer(
+			fmt.Sprintf("notification[%d]", i),
+			ctl.Handler,
+			mq.BaseConsumer{
+				Queue:   cmCfg.Queue,
+				AutoAck: true,
+			})
+	}
 
-			for {
-				select {
-				case msg, ok := <-rcvDataChan:
-					if ok {
-						userMsg := model.UserMsg{}
-
-						if err := json.Unmarshal(msg.(amqp.Delivery).Body, &userMsg); err != nil {
-							log.Error("Unmarshal MsgNotificationRequest Body failed, err: ", err)
-						}
-
-						r := retrier.New(retrier.ExponentialBackoff(5, 2*time.Second), nil)
-
-						err := r.Run(func() error {
-							log.Info(time.Now().Second())
-							return handler(&userMsg)
-						})
-
-						if err != nil {
-							log.Error("get an error, handle it, err: ", err)
-						}
-					}
-				}
-			}
-
-		}(i, rcvDataChan, ctl.Handler)
+	if e := mqCli.StartConsumer(ctx); e != nil {
+		log.Error("InitConnection failed, err: ", e)
 	}
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 	<-quit
+
+	cancel()
 
 	log.Debug("Exit Jobs Sender!")
 }

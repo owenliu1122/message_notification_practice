@@ -31,6 +31,8 @@ var serverCmd = &cobra.Command{
 func serverProc(cmd *cobra.Command, args []string) {
 
 	log.Debug("Start serverProc")
+	//ctx, cancel := context.WithCancel(context.Background())
+	//defer cancel()
 
 	db, err := gorm.Open("mysql", "root:123456@/msg_notification?charset=utf8&parseTime=True&loc=Local")
 	if err != nil {
@@ -41,24 +43,6 @@ func serverProc(cmd *cobra.Command, args []string) {
 	defer db.Close()
 
 	time.Sleep(2 * time.Second) // TODO: remove is
-
-	// 生产
-	chanDepth := 10 * jobsCmdNum
-	sendDataChan := make(chan interface{}, chanDepth)
-
-	producerInfo := mq.MQInfo{
-		Cfg: mq.MQCfg{
-			URL:      "amqp://liujx:Liujiaxing@localhost:5672/",
-			Queue:    "push.msg.q",
-			Exchange: "t.msg.ex",
-		},
-		MsgChan: sendDataChan,
-	}
-
-	if err := mq.ProducerStart(jobsCmdNum, producerInfo); err != nil {
-		log.Errorf("ConsumerStart err：%v", err)
-		return
-	}
 
 	// grpc server
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", serverCmdPort))
@@ -75,7 +59,23 @@ func serverProc(cmd *cobra.Command, args []string) {
 
 	defer gs.GracefulStop()
 
-	ctl := controllers.NewServerController(sendDataChan, services.NewNotificationService(db))
+	pcCfg := mq.MQCfg{
+		URL:      "amqp://liujx:Liujiaxing@localhost:5672/",
+		Queue:    "push.msg.q",
+		Exchange: "t.msg.ex",
+	}
+
+	mqCli := mq.NewMq(pcCfg)
+	if e := mqCli.InitConnection(); e != nil {
+		log.Error("InitConnection failed, err: ", e)
+	}
+	defer mqCli.Close()
+
+	if e := mqCli.InitProducer(pcCfg.Exchange, pcCfg.Queue); e != nil {
+		log.Error("InitProducer failed, err: ", e)
+	}
+
+	ctl := controllers.NewServerController(services.NewNotificationService(db, mqCli))
 	pb.RegisterMsgNotificationServer(gs, ctl)
 	go gs.Serve(lis)
 

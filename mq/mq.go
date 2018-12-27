@@ -2,7 +2,10 @@ package mq
 
 import (
 	"fmt"
-	"log"
+	"github.com/streadway/amqp"
+	log "gopkg.in/cihub/seelog.v2"
+	"sync"
+	"time"
 )
 
 type MQCfg struct {
@@ -14,13 +17,69 @@ type MQCfg struct {
 type MQInfo struct {
 	Cfg     MQCfg
 	MsgChan chan interface{} // 消息队列
-	//ExtChan   chan bool         // 协程退出标记信号
-	//WaitGroup *sync.WaitGroup   // 同步组
+}
+
+/*
+BaseMq
+*/
+type mqConnection struct {
+	Lock       sync.RWMutex
+	Connection *amqp.Connection
+	MqURL      string
+}
+
+type BaseMq struct {
+	conn *mqConnection
+	cm   map[string]*ConsumerContext
+	pc   *ProducerContext
+}
+
+func NewMq(mqCfg MQCfg) *BaseMq {
+	return &BaseMq{
+		conn: &mqConnection{
+			MqURL: mqCfg.URL,
+		},
+	}
+}
+
+func (mq *BaseMq) InitConnection() error {
+	return mq.refreshMqConnection()
+}
+
+func (mq *BaseMq) refreshMqConnection() error {
+	var err error
+	mq.conn.Lock.Lock()
+	defer mq.conn.Lock.Unlock()
+
+	if mq.conn.Connection == nil {
+		for i := 0; i < 5; i++ {
+			mq.conn.Connection, err = amqp.Dial(mq.conn.MqURL)
+			if err == nil {
+				break
+			}
+			time.Sleep(5 * time.Second)
+		}
+	}
+
+	return err
+}
+
+func (mq *BaseMq) Close() error {
+	mq.closeProducer()
+
+	mq.closeConsumer()
+
+	// 关闭 MQ 连接
+	if mq.conn != nil && mq.conn.Connection != nil {
+		mq.conn.Connection.Close()
+	}
+
+	return nil
 }
 
 func failOnErr(err error, msg string) {
 	if err != nil {
-		log.Fatalf("%s:%s", msg, err)
+		log.Errorf("%s:%s", msg, err)
 		panic(fmt.Sprintf("%s:%s", msg, err))
 	}
 }
