@@ -42,3 +42,6 @@ sender:
     consumer:
       queue: "push.msg.q.notification.wechat" 
 
+dashboard:
+  mysql: "root:123456@/msg_notification?charset=utf8&parseTime=True&loc=Local"
+  redis: "redis://:localhost:6379/0"

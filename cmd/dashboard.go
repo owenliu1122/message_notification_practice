@@ -1,14 +1,17 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	log "gopkg.in/cihub/seelog.v2"
 	"message_notification_practice/controllers"
+	"message_notification_practice/redis"
 	"message_notification_practice/services"
 	"os"
 	"os/signal"
@@ -22,8 +25,16 @@ var dashboardCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 
 		log.Debug("Start serverProc")
+		cfg := viper.GetStringMapString(cmd.Use)
 
-		db, err := gorm.Open("mysql", "root:123456@/msg_notification?charset=utf8&parseTime=True&loc=Local")
+		cache, err := redis.NewRedisCli(cfg["redis"], json.Marshal, json.Unmarshal)
+		if err != nil {
+			fmt.Printf("init redis failed, err: %s", err)
+			return
+		}
+
+		db, err := gorm.Open("mysql", cfg["mysql"])
+
 		if err != nil {
 			fmt.Printf("init mysql failed, err: %s", err)
 			return
@@ -39,7 +50,7 @@ var dashboardCmd = &cobra.Command{
 
 		grpCtl := controllers.NewGroupController(services.NewGroupService(db))
 		usrCtl := controllers.NewUserController(services.NewUserService(db))
-		gurCtl := controllers.NewGroupUserRelationController(services.NewGroupUserRelationService(db))
+		gurCtl := controllers.NewGroupUserRelationController(services.NewGroupUserRelationService(db, cache))
 
 		// Groups Routes
 		e.GET("/dashboard/groups", grpCtl.List)
