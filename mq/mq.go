@@ -34,10 +34,10 @@ type BaseMq struct {
 	pc   *ProducerContext
 }
 
-func NewMq(mqCfg MQCfg) *BaseMq {
+func NewMq(url string) *BaseMq {
 	return &BaseMq{
 		conn: &mqConnection{
-			MqURL: mqCfg.URL,
+			MqURL: url,
 		},
 	}
 }

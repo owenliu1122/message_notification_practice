@@ -1,4 +1,4 @@
-package model
+package root
 
 import (
 	"time"
@@ -14,9 +14,9 @@ type NotificationRecord struct {
 }
 
 type NotificationRecordService interface {
-	//Create(user *GroupUserRelation) error
-	//Update(user *GroupUserRelation, fields map[string]interface{}) error
-	//Find(id uint64) (*GroupUserRelation, error)
-	//FindByName(name string) (*GroupUserRelation, error)
-	//Delete(user *GroupUserRelation) error
+	Create(user *GroupUserRelation) error
+	Update(user *GroupUserRelation, fields map[string]interface{}) error
+	Find(id uint64) (*GroupUserRelation, error)
+	FindByName(name string) (*GroupUserRelation, error)
+	Delete(user *GroupUserRelation) error
 }

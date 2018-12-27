@@ -2,18 +2,18 @@ package services
 
 import (
 	"fmt"
-	"message_notification_practice/model"
+	"message_notification_practice"
 )
 
-func NewSenderService(msgType string, mg interface{}) SenderService {
+func NewSenderService(msgType string, sendToolCfg interface{}) SenderService {
 
 	switch msgType {
 	case MsgTypeWeChat:
-		return NewWeChatSenderService(mg)
+		return NewWeChatSenderService(sendToolCfg)
 	case MsgTypeMail:
-		return NewMailSenderService(mg)
+		return NewMailSenderService(sendToolCfg)
 	case MsgTypePhone:
-		return NewPhoneSenderService(mg)
+		return NewPhoneSenderService(sendToolCfg)
 	default:
 		panic(fmt.Sprintf("Unknown MsgType: %s", msgType))
 	}
@@ -22,5 +22,5 @@ func NewSenderService(msgType string, mg interface{}) SenderService {
 }
 
 type SenderService interface {
-	Handler(msg *model.UserMsg) error
+	Handler(msg *root.UserMsg) error
 }

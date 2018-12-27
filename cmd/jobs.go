@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"gopkg.in/mailgun/mailgun-go.v1"
+	"github.com/spf13/viper"
 	"message_notification_practice/services"
 
 	"context"
@@ -23,28 +23,6 @@ var (
 	jobsCmdType string
 )
 
-var senderMqCfgMap = map[string]mq.BaseProducer{
-	services.MsgTypeMail: {
-		//URL:      "amqp://liujx:Liujiaxing@localhost:5672/",
-		RoutingKey: "push.msg.q.notification.mail",
-		Exchange:   "t.msg.ex.notification",
-	},
-	services.MsgTypePhone: {
-		//URL:      "amqp://liujx:Liujiaxing@localhost:5672/",
-		RoutingKey: "push.msg.q.notification.phone",
-		Exchange:   "t.msg.ex.notification",
-	},
-	services.MsgTypeWeChat: {
-		//URL:      "amqp://liujx:Liujiaxing@localhost:5672/",
-		RoutingKey: "push.msg.q.notification.wechat",
-		Exchange:   "t.msg.ex.notification",
-	},
-}
-
-var domain string = "sandboxaaff1b769a3c429daef777dfeed8f173.mailgun.org" // e.g. mg.yourcompany.com
-var privateAPIKey string = "61604cff9615cfa175f4340991b8c713-9b463597-ad5d1076"
-var publicAPIKey string = "pubkey-25f9fdfa7af58880311ec28977c10f6c"
-
 var jobsCmd = &cobra.Command{
 	Use:   "jobs",
 	Short: "Start job for notification or sender",
@@ -61,7 +39,15 @@ func notificationProc(cmd *cobra.Command, args []string) {
 	log.Debug("Start Jobs Notify!")
 	ctx, cancel := context.WithCancel(context.Background())
 
-	db, err := gorm.Open("mysql", "root:123456@/msg_notification?charset=utf8&parseTime=True&loc=Local")
+	cfg := viper.GetStringMapString(cmd.Use)
+	cfgCM := viper.Sub(cmd.Use).GetStringMapString("consumer")
+	cfgPCMap := viper.Sub(cmd.Use).GetStringMap("producer")
+
+	log.Debugf("notification CFG: -->  %#v\n", cfg)
+	log.Debugf("notification cfgCM: -->  %#v\n", cfgCM)
+	log.Debugf("notification cfgPCMap: -->  %#v\n", cfgPCMap)
+
+	db, err := gorm.Open("mysql", cfg["mysql"])
 	if err != nil {
 		fmt.Printf("init mysql failed, err: %s", err)
 		return
@@ -69,28 +55,24 @@ func notificationProc(cmd *cobra.Command, args []string) {
 
 	defer db.Close()
 
-	// 业务处理协程
-
-	cmCfg := mq.MQCfg{
-		URL:      "amqp://liujx:Liujiaxing@localhost:5672/",
-		Queue:    "push.msg.q",
-		Exchange: "t.msg.ex",
-	}
-
-	mqCli := mq.NewMq(cmCfg)
+	mqCli := mq.NewMq(cfg["rabbitmq"])
 	if e := mqCli.InitConnection(); e != nil {
 		log.Error("InitConnection failed, err: ", e)
 	}
 	defer mqCli.Close()
 
-	if e := mqCli.InitProducer(cmCfg.Exchange, cmCfg.Queue); e != nil {
+	if e := mqCli.InitProducer("", ""); e != nil {
 		log.Error("InitProducer failed, err: ", e)
 	}
 
 	mqSendSvc := services.NewMqSendService(mqCli, services.NewGroupUserRelationService(db))
 
-	for k := range senderMqCfgMap {
-		mqSendSvc.RegisterExchangeRouting(k, senderMqCfgMap[k])
+	for k, v := range cfgPCMap {
+		log.Debugf("k: %s, v: %#v\n", k, v)
+		mqSendSvc.RegisterExchangeRouting(k, mq.BaseProducer{
+			Exchange:   v.(map[string]interface{})["mqexchange"].(string),
+			RoutingKey: v.(map[string]interface{})["mqroutingkey"].(string),
+		})
 	}
 
 	ctl := controllers.NewNotificationController(mqSendSvc)
@@ -101,7 +83,7 @@ func notificationProc(cmd *cobra.Command, args []string) {
 			fmt.Sprintf("notification[%d]", i),
 			ctl.Handler,
 			mq.BaseConsumer{
-				Queue:   cmCfg.Queue,
+				Queue:   cfgCM["queue"],
 				AutoAck: true,
 			})
 	}
@@ -116,7 +98,7 @@ func notificationProc(cmd *cobra.Command, args []string) {
 
 	cancel()
 
-	time.Sleep(2 * time.Second)
+	time.Sleep(500 * time.Millisecond)
 
 	log.Debug("Exit Jobs Notification!")
 }
@@ -133,38 +115,18 @@ func senderProc(cmd *cobra.Command, args []string) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	var senderJobCfgMap = map[string]mq.MQCfg{
-		services.MsgTypeMail: {
-			URL:      "amqp://liujx:Liujiaxing@localhost:5672/",
-			Queue:    "push.msg.q.notification.mail",
-			Exchange: "t.msg.ex.notification",
-		},
-		services.MsgTypePhone: {
-			URL:      "amqp://liujx:Liujiaxing@localhost:5672/",
-			Queue:    "push.msg.q.notification.phone",
-			Exchange: "t.msg.ex.notification",
-		},
-		services.MsgTypeWeChat: {
-			URL:      "amqp://liujx:Liujiaxing@localhost:5672/",
-			Queue:    "push.msg.q.notification.wechat",
-			Exchange: "t.msg.ex.notification",
-		},
-	}
-	// 消费
-	cmCfg, ok := senderJobCfgMap[jobsCmdType]
-	if !ok {
-		log.Errorf("not found %s mq config info", jobsCmdType)
-		return
-	}
+	cfg := viper.GetStringMapString(cmd.Use)
+	cfgCM := viper.Sub(cmd.Use).Sub(jobsCmdType).GetStringMapString("consumer")
+	cfgSendSvc := viper.Sub(cmd.Use).Sub(jobsCmdType).GetStringMapString("sendsvc")
 
-	mqCli := mq.NewMq(cmCfg)
+	mqCli := mq.NewMq(cfg["rabbitmq"])
 	if e := mqCli.InitConnection(); e != nil {
 		log.Error("InitConnection failed, err: ", e)
 	}
 	defer mqCli.Close()
 
 	// TODO: 需要使用统一的接口，这里暂时时候 mail 接口测试
-	sendSvc := services.NewSenderService(jobsCmdType, mailgun.NewMailgun(domain, privateAPIKey, publicAPIKey))
+	sendSvc := services.NewSenderService(jobsCmdType, cfgSendSvc)
 	ctl := controllers.NewSenderController(sendSvc)
 
 	for i := 0; i < jobsCmdNum; i++ {
@@ -173,7 +135,7 @@ func senderProc(cmd *cobra.Command, args []string) {
 			fmt.Sprintf("notification[%d]", i),
 			ctl.Handler,
 			mq.BaseConsumer{
-				Queue:   cmCfg.Queue,
+				Queue:   cfgCM["queue"],
 				AutoAck: true,
 			})
 	}
@@ -187,6 +149,8 @@ func senderProc(cmd *cobra.Command, args []string) {
 	<-quit
 
 	cancel()
+
+	time.Sleep(500 * time.Millisecond)
 
 	log.Debug("Exit Jobs Sender!")
 }

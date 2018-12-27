@@ -2,6 +2,7 @@ package redis
 
 import (
 	"fmt"
+	//"fmt"
 	goredis "github.com/go-redis/redis"
 	"log"
 )
@@ -17,7 +18,8 @@ func init() {
 	})
 
 	pong, err := redisdb.Ping().Result()
-	log.Debug(pong, err)
+	fmt.Println(pong, err)
+	//log.Debug(pong, err)
 }
 
 func GetRedisCli() *goredis.Client {

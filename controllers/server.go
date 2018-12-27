@@ -3,7 +3,7 @@ package controllers
 import (
 	"golang.org/x/net/context"
 	log "gopkg.in/cihub/seelog.v2"
-	"message_notification_practice/model"
+	"message_notification_practice"
 	"message_notification_practice/pb"
 	"message_notification_practice/services"
 )
@@ -24,7 +24,7 @@ func (c *ServerController) CheckIn(ctx context.Context, request *pb.MsgNotificat
 
 	log.Debug(request.Content)
 
-	if e := c.notifySrv.Create(&model.NotificationRecord{
+	if e := c.notifySrv.Create(&root.NotificationRecord{
 		GroupID:      request.Group,
 		Notification: request.Content,
 	}); e != nil {

@@ -2,19 +2,16 @@ package services
 
 import (
 	log "gopkg.in/cihub/seelog.v2"
-	"gopkg.in/mailgun/mailgun-go.v1"
-	"message_notification_practice/model"
+	"message_notification_practice"
 )
 
-func NewPhoneSenderService(mg interface{}) *PhoneSenderService {
-	return &PhoneSenderService{mg: mg.(mailgun.Mailgun)}
+func NewPhoneSenderService(toolCfg interface{}) *PhoneSenderService {
+	return &PhoneSenderService{}
 }
 
-type PhoneSenderService struct {
-	mg mailgun.Mailgun
-}
+type PhoneSenderService struct{}
 
-func (svc *PhoneSenderService) Handler(msg *model.UserMsg) error {
+func (svc *PhoneSenderService) Handler(msg *root.UserMsg) error {
 
 	// TODO: not implementation
 	log.Debugf("PhoneSenderService: userMsg: %#v\n", msg)

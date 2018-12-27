@@ -5,33 +5,46 @@ import (
 	"github.com/eapache/go-resiliency/retrier"
 	log "gopkg.in/cihub/seelog.v2"
 	"gopkg.in/mailgun/mailgun-go.v1"
-	"message_notification_practice/model"
+	"message_notification_practice"
 	"time"
 )
 
-func NewMailSenderService(mg interface{}) *MailSenderService {
-	return &MailSenderService{mg: mg.(mailgun.Mailgun)}
+//var domain string = "sandboxaaff1b769a3c429daef777dfeed8f173.mailgun.org" // e.g. mg.yourcompany.com
+//var privateAPIKey string = "61604cff9615cfa175f4340991b8c713-9b463597-ad5d1076"
+//var publicAPIKey string = "pubkey-25f9fdfa7af58880311ec28977c10f6c"
+
+func NewMailSenderService(toolCfg interface{}) *MailSenderService {
+	cfg := toolCfg.(map[string]string)
+
+	return &MailSenderService{
+		mg: mailgun.NewMailgun(
+			cfg["domain"],
+			cfg["privateapikey"],
+			cfg["publicapikey"],
+		),
+	}
+
+	//return &MailSenderService {
+	//	mg: mailgun.NewMailgun( domain, privateAPIKey, ""),
+	//}
 }
 
 type MailSenderService struct {
 	mg mailgun.Mailgun
 }
 
-func (svc *MailSenderService) Handler(msg *model.UserMsg) error {
+func (svc *MailSenderService) Handler(msg *root.UserMsg) error {
 
-	// TODO: not implementation
 	log.Debugf("MailSenderService: userMsg: %#v\n", msg)
 	return nil
 
 	r := retrier.New(retrier.ExponentialBackoff(5, 20*time.Millisecond), nil)
 
-	// body := template.New() // TODO: HTML mail is not implementation.
-
 	err := r.Run(func() error {
 
 		return errors.New("sender handler happens error")
 
-		log.Info(time.Now().Second())
+		log.Debugf("MailSenderService: mg: %#v", svc.mg)
 		resp, id, err := svc.mg.Send(svc.mg.NewMessage(
 			"aaa <83214742@qq.com>",
 			"Hello",
@@ -44,7 +57,7 @@ func (svc *MailSenderService) Handler(msg *model.UserMsg) error {
 
 	})
 
-	time.Sleep(5 * time.Second)
+	time.Sleep(2 * time.Second)
 
 	return err
 }

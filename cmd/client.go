@@ -39,7 +39,7 @@ func clientProc(cmd *cobra.Command, args []string) {
 	//调用方法
 	reqBody := new(pb.MsgNotificationRequest)
 
-	for i := 2; i < 3; i++ {
+	for i := 3; i < 4; i++ {
 
 		reqBody.Content = fmt.Sprintf("gRPC liujx: [%d]", i)
 		reqBody.Group = uint64(i)

@@ -3,7 +3,7 @@ package controllers
 import (
 	"github.com/labstack/echo"
 	"github.com/labstack/gommon/log"
-	"message_notification_practice/model"
+	"message_notification_practice"
 	"message_notification_practice/services"
 	"net/http"
 )
@@ -30,7 +30,7 @@ func (ctl *UserController) List(ctx echo.Context) error {
 
 func (ctl *UserController) Create(ctx echo.Context) error {
 
-	var user model.User
+	var user root.User
 	if err := ctx.Bind(&user); err != nil {
 		log.Error("add user get body failed, err: ", err)
 		return ctx.String(http.StatusBadRequest, err.Error())
@@ -50,7 +50,7 @@ func (ctl *UserController) Create(ctx echo.Context) error {
 
 func (ctl *UserController) Update(ctx echo.Context) error {
 
-	var user model.User
+	var user root.User
 	if err := ctx.Bind(&user); err != nil {
 		log.Error("update group get body failed, err: ", err)
 		return ctx.String(http.StatusBadRequest, err.Error())
@@ -70,7 +70,7 @@ func (ctl *UserController) Update(ctx echo.Context) error {
 
 func (ctl *UserController) Delete(ctx echo.Context) error {
 
-	var user model.User
+	var user root.User
 	if err := ctx.Bind(&user); err != nil {
 		log.Error("delete user get body failed, err: ", err)
 		return ctx.String(http.StatusBadRequest, err.Error())

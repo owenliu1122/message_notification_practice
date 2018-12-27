@@ -4,7 +4,7 @@ import (
 	//"database/sql/driver"
 	"github.com/labstack/echo"
 	log "gopkg.in/cihub/seelog.v2"
-	"message_notification_practice/model"
+	"message_notification_practice"
 	"message_notification_practice/services"
 	"net/http"
 	"strconv"
@@ -63,7 +63,7 @@ func (ctl *GroupUserRelationController) AvailableMembers(ctx echo.Context) error
 
 func (ctl *GroupUserRelationController) Update(ctx echo.Context) error {
 
-	var gur model.GroupUserRelation
+	var gur root.GroupUserRelation
 	if err := ctx.Bind(&gur); err != nil {
 		log.Error("update group get body failed, err: ", err)
 		return ctx.String(http.StatusBadRequest, err.Error())
@@ -83,7 +83,7 @@ func (ctl *GroupUserRelationController) Update(ctx echo.Context) error {
 
 func (ctl *GroupUserRelationController) DeleteMembers(ctx echo.Context) error {
 
-	var gur []model.GroupUserRelation
+	var gur []root.GroupUserRelation
 
 	if err := ctx.Bind(&gur); err != nil {
 		log.Error("delete group user relations get body failed, err: ", err)
@@ -102,7 +102,7 @@ func (ctl *GroupUserRelationController) AddMembers(ctx echo.Context) error {
 
 	log.Debug("start AddMembers")
 
-	var gur []model.GroupUserRelation
+	var gur []root.GroupUserRelation
 
 	if err := ctx.Bind(&gur); err != nil {
 		log.Error("create group user relations get body failed, err: ", err)

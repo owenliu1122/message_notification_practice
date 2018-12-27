@@ -5,7 +5,7 @@ import (
 	"github.com/streadway/amqp"
 	"golang.org/x/net/context"
 	log "gopkg.in/cihub/seelog.v2"
-	"message_notification_practice/model"
+	"message_notification_practice"
 	"message_notification_practice/services"
 )
 
@@ -21,7 +21,7 @@ func NewNotificationController(mqSvc *services.MqSendService) *NotificationContr
 
 func (ctl *NotificationController) Handler(ctx context.Context, msg *amqp.Delivery) {
 	var err error
-	record := &model.NotificationRecord{}
+	record := &root.NotificationRecord{}
 
 	err = json.Unmarshal(msg.Body, record)
 	if err != nil {

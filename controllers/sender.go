@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"github.com/streadway/amqp"
 	log "gopkg.in/cihub/seelog.v2"
+	"message_notification_practice"
 
-	"message_notification_practice/model"
 	"message_notification_practice/services"
 )
 
@@ -22,7 +22,7 @@ func NewSenderController(sendSvc services.SenderService) *SenderController {
 
 func (ctl *SenderController) Handler(ctx context.Context, msg *amqp.Delivery) {
 
-	userMsg := model.UserMsg{}
+	userMsg := root.UserMsg{}
 
 	if err := json.Unmarshal(msg.Body, &userMsg); err != nil {
 		log.Error("Unmarshal MsgNotificationRequest Body failed, err: ", err)

@@ -3,7 +3,7 @@ package services
 import (
 	"encoding/json"
 	log "gopkg.in/cihub/seelog.v2"
-	"message_notification_practice/model"
+	"message_notification_practice"
 	"message_notification_practice/mq"
 	"time"
 )
@@ -36,21 +36,20 @@ func (svc *MqSendService) RegisterExchangeRouting(tp string, exRouting mq.BasePr
 	svc.exRouting[tp] = &exRouting
 }
 
-func (svc *MqSendService) Send(record *model.NotificationRecord) error {
+func (svc *MqSendService) Send(record *root.NotificationRecord) error {
 
 	var err error
-	var users []model.User
+	var users []root.User
 	users, err = svc.gurSvc.FindMembers(record.GroupID)
 	if err != nil {
 		log.Error("get group_user_relations failed, err: ", err)
 	}
 	for k, v := range svc.exRouting {
-
 		log.Debugf("exRouting[%s]: %#v\n", k, v)
 	}
 	for _, user := range users {
 
-		userMsg := &model.UserMsg{
+		userMsg := &root.UserMsg{
 			ID:      user.ID,
 			Name:    user.Name,
 			Content: record.Notification,

@@ -5,6 +5,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 	log "gopkg.in/cihub/seelog.v2"
@@ -30,11 +31,14 @@ var serverCmd = &cobra.Command{
 
 func serverProc(cmd *cobra.Command, args []string) {
 
+	log.Debugf("redis：%#v\n", viper.GetStringMap("server"))
+	cfg := viper.GetStringMapString(cmd.Use)
+
 	log.Debug("Start serverProc")
 	//ctx, cancel := context.WithCancel(context.Background())
 	//defer cancel()
 
-	db, err := gorm.Open("mysql", "root:123456@/msg_notification?charset=utf8&parseTime=True&loc=Local")
+	db, err := gorm.Open("mysql", cfg["mysql"])
 	if err != nil {
 		fmt.Printf("init mysql failed, err: %s", err)
 		return
@@ -52,26 +56,17 @@ func serverProc(cmd *cobra.Command, args []string) {
 		grpc.KeepaliveParams(keepalive.ServerParameters{
 			Time: 10 * time.Minute,
 		}),
-
-		//// Register stream middleware.
-		//grpc.StreamInterceptor(controllers.ClientIDSetter),
 	)
 
 	defer gs.GracefulStop()
 
-	pcCfg := mq.MQCfg{
-		URL:      "amqp://liujx:Liujiaxing@localhost:5672/",
-		Queue:    "push.msg.q",
-		Exchange: "t.msg.ex",
-	}
-
-	mqCli := mq.NewMq(pcCfg)
+	mqCli := mq.NewMq(cfg["rabbitmq"])
 	if e := mqCli.InitConnection(); e != nil {
 		log.Error("InitConnection failed, err: ", e)
 	}
 	defer mqCli.Close()
 
-	if e := mqCli.InitProducer(pcCfg.Exchange, pcCfg.Queue); e != nil {
+	if e := mqCli.InitProducer(cfg["mqexchange"], cfg["mqroutingkey"]); e != nil {
 		log.Error("InitProducer failed, err: ", e)
 	}
 

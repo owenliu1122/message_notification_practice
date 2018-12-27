@@ -1,2 +1,44 @@
-redis:
-  host: "ssd"
+server:
+  mysql: "root:123456@/msg_notification?charset=utf8&parseTime=True&loc=Local"
+  rabbitmq: "amqp://liujx:Liujiaxing@localhost:5672/"
+  
+  redis: "redis://:localhost:6379/0"
+
+  mqexchange: "t.msg.ex"
+  mqroutingkey: "push.msg.q"
+
+notification:
+  mysql: "root:123456@/msg_notification?charset=utf8&parseTime=True&loc=Local"
+  rabbitmq: "amqp://liujx:Liujiaxing@localhost:5672/"
+  redis: "redis://:localhost:6379/0"
+  consumer:
+    queue: "push.msg.q"
+  producer:
+    mail:
+      mqexchange: "t.msg.ex.notification"
+      mqroutingkey: "push.msg.q.notification.mail"    
+    phone:
+      mqexchange: "t.msg.ex.notification"
+      mqroutingkey: "push.msg.q.notification.phone"    
+    wechat:
+      mqexchange: "t.msg.ex.notification"
+      mqroutingkey: "push.msg.q.notification.wechat"    
+
+sender:
+  mysql: "root:123456@/msg_notification?charset=utf8&parseTime=True&loc=Local"
+  rabbitmq: "amqp://liujx:Liujiaxing@localhost:5672/"
+  redis: "redis://:localhost:6379/0"
+  mail:
+    consumer:
+      queue: "push.msg.q.notification.mail"
+    sendsvc:
+      domain: "sandboxaaff1b769a3c429daef777dfeed8f173.mailgun.org"
+      privateapikey: "61604cff9615cfa175f4340991b8c713-9b463597-ad5d1076"
+      publicapikey: "pubkey-25f9fdfa7af58880311ec28977c10f6c" 
+  phone:
+    consumer:
+      queue: "push.msg.q.notification.phone"    
+  wechat:
+    consumer:
+      queue: "push.msg.q.notification.wechat" 
+

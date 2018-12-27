@@ -1,4 +1,4 @@
-package model
+package root
 
 import (
 	"time"
@@ -16,7 +16,8 @@ type GroupUserRelation struct {
 type GroupUserRelationService interface {
 	Create(user *GroupUserRelation) error
 	Update(user *GroupUserRelation, fields map[string]interface{}) error
-	FindFindMembers(id uint64) ([]User, error)
 	FindByName(name string) (*GroupUserRelation, error)
-	Delete(user *GroupUserRelation) error
+	FindFindMembers(id uint64) ([]User, error)
+	FindAvailableMembers(id uint64, uname string) ([]User, error)
+	Delete(gur []GroupUserRelation) error
 }

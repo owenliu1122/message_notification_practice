@@ -3,7 +3,7 @@ package controllers
 import (
 	"github.com/labstack/echo"
 	log "gopkg.in/cihub/seelog.v2"
-	"message_notification_practice/model"
+	"message_notification_practice"
 	"message_notification_practice/services"
 	"net/http"
 )
@@ -30,7 +30,7 @@ func (ctl *GroupController) List(ctx echo.Context) error {
 
 func (ctl *GroupController) Create(ctx echo.Context) error {
 
-	var group model.Group
+	var group root.Group
 	if err := ctx.Bind(&group); err != nil {
 		log.Error("add group get body failed, err: ", err)
 		return ctx.String(http.StatusBadRequest, err.Error())
@@ -50,7 +50,7 @@ func (ctl *GroupController) Create(ctx echo.Context) error {
 
 func (ctl *GroupController) Update(ctx echo.Context) error {
 
-	var group model.Group
+	var group root.Group
 	if err := ctx.Bind(&group); err != nil {
 		log.Error("update group get body failed, err: ", err)
 		return ctx.String(http.StatusBadRequest, err.Error())
@@ -70,7 +70,7 @@ func (ctl *GroupController) Update(ctx echo.Context) error {
 
 func (ctl *GroupController) Delete(ctx echo.Context) error {
 
-	var group model.Group
+	var group root.Group
 	if err := ctx.Bind(&group); err != nil {
 		log.Error("delete group get body failed, err: ", err)
 		return ctx.String(http.StatusBadRequest, err.Error())
