@@ -1,6 +1,7 @@
 package redis
 
 import (
+	"encoding/json"
 	"fmt"
 	goredis "github.com/go-redis/redis"
 	log "gopkg.in/cihub/seelog.v2"
@@ -12,7 +13,12 @@ type Cache interface {
 	Set(key string, inVal interface{}, timeout time.Duration) error
 	Delete(key string) error
 	IsExist(key string) bool
+	Expire(key string, expiration time.Duration) error
+	ExpireAt(key string, tm time.Time) error
 	Close() error
+	// Set
+	SAdd(key string, inVal ...interface{}) error
+	SMembers(key string) (interface{}, error)
 }
 
 type MarshalFunc func(interface{}) ([]byte, error)
@@ -114,28 +120,80 @@ func (cache *CacheRedis) IsExist(key string) bool {
 	return result > 0
 }
 
-//type Test struct {
-//	Name string		`json:"name"`
-//	Age  uint8		`json:"age"`
-//}
-//
-//func init() {
-//	var (
-//		cache *CacheRedis
-//		err error
-//	)
-//
-//	if cache, err = NewRedisCli("redis://localhost:6379/0", json.Marshal, json.Unmarshal); err!=nil {
-//		panic(err)
-//	}
-//
-//	info:=&Test{"owenjiaxing",15}
-//	cache.Set("myinfo", info, 10*time.Second)
-//
-//	var infoRet Test
-//
-//	cache.Get("myinfo", &infoRet)
-//	fmt.Printf("infoRet: %#v\n", infoRet)
-//	time.Sleep(5*time.Second)
-//	fmt.Printf("myinfo exists: %v\n", cache.Delete("myinfo"))
-//}
+func (cache *CacheRedis) Expire(key string, expiration time.Duration) error {
+	_, err := cache.Client.Expire(key, expiration).Result()
+	if err != nil {
+		log.Errorf("cache: Expire %s failed: %s", key, err)
+	}
+	return err
+}
+
+func (cache *CacheRedis) ExpireAt(key string, tm time.Time) error {
+	_, err := cache.Client.ExpireAt(key, tm).Result()
+	if err != nil {
+		log.Errorf("cache: ExpireAt %s failed: %s", key, err)
+	}
+	return err
+}
+
+/* Set */
+
+func (cache *CacheRedis) SAdd(key string, inVal ...interface{}) error {
+
+	bytesVals := make([]interface{}, 0, len(inVal))
+
+	for i := range inVal {
+		bytes, err := cache.Marshal(inVal[i])
+		if err != nil {
+			log.Errorf("cache: Marshal failed: %s", err)
+			return err
+		}
+		bytesVals = append(bytesVals, bytes)
+		fmt.Printf("[%d], bytes: %s\n", string(bytes))
+	}
+
+	_, err := cache.Client.SAdd(key, bytesVals...).Result()
+	if err != nil {
+		log.Errorf("cache: SAdd %s failed: %s", key, err)
+	}
+	return err
+}
+
+func (cache *CacheRedis) SMembers(key string) (interface{}, error) {
+	result, err := cache.Client.SMembers(key).Result()
+	if err != nil {
+		log.Errorf("cache: SMembers %s failed: %s", key, err)
+	}
+	return result, err
+}
+
+type Test struct {
+	Name string `json:"name"`
+	Age  uint8  `json:"age"`
+}
+
+func init() {
+	var (
+		cache *CacheRedis
+		err   error
+	)
+
+	if cache, err = NewRedisCli("redis://localhost:6379/0", json.Marshal, json.Unmarshal); err != nil {
+		panic(err)
+	}
+
+	info := []Test{{"owenjiaxing", 15}, {"ssss", 30}}
+
+	cache.SAdd("owen", info[0], info[1])
+
+	//cache.Set("myinfo_1", info, 60*time.Second)
+	//info.Age = 100
+	//cache.Set("myinfo_2", info, 60*time.Second)
+	//
+	//var infoRet []Test
+	//
+	//cache.Get("myinfo*", &infoRet)
+	//fmt.Printf("infoRet: %#v\n", infoRet)
+	//time.Sleep(5*time.Second)
+	//fmt.Printf("myinfo exists: %v\n", cache.Delete("myinfo"))
+}

@@ -4,14 +4,19 @@ import (
 	"github.com/jinzhu/gorm"
 	log "gopkg.in/cihub/seelog.v2"
 	"message_notification_practice"
+	"message_notification_practice/redis"
 )
 
-func NewGroupUserRelationService(db *gorm.DB) *GroupUserRelationService {
-	return &GroupUserRelationService{db: db}
+func NewGroupUserRelationService(db *gorm.DB, cache redis.Cache) *GroupUserRelationService {
+	return &GroupUserRelationService{
+		db:    db,
+		cache: cache,
+	}
 }
 
 type GroupUserRelationService struct {
-	db *gorm.DB
+	db    *gorm.DB
+	cache redis.Cache
 }
 
 func (u *GroupUserRelationService) Create(gur []root.GroupUserRelation) error {

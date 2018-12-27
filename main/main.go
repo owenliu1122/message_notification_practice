@@ -23,6 +23,7 @@ package main
 import (
 	"bytes"
 	"message_notification_practice/cmd"
+	_ "message_notification_practice/redis"
 )
 
 func main() {

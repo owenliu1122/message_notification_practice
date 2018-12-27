@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/spf13/viper"
+	"message_notification_practice/redis"
 	"message_notification_practice/services"
 
 	"context"
@@ -47,6 +49,12 @@ func notificationProc(cmd *cobra.Command, args []string) {
 	log.Debugf("notification cfgCM: -->  %#v\n", cfgCM)
 	log.Debugf("notification cfgPCMap: -->  %#v\n", cfgPCMap)
 
+	cache, err := redis.NewRedisCli(cfg["redis"], json.Marshal, json.Unmarshal)
+	if err != nil {
+		fmt.Printf("init redis failed, err: %s", err)
+		return
+	}
+
 	db, err := gorm.Open("mysql", cfg["mysql"])
 	if err != nil {
 		fmt.Printf("init mysql failed, err: %s", err)
@@ -65,7 +73,7 @@ func notificationProc(cmd *cobra.Command, args []string) {
 		log.Error("InitProducer failed, err: ", e)
 	}
 
-	mqSendSvc := services.NewMqSendService(mqCli, services.NewGroupUserRelationService(db))
+	mqSendSvc := services.NewMqSendService(mqCli, services.NewGroupUserRelationService(db, cache))
 
 	for k, v := range cfgPCMap {
 		log.Debugf("k: %s, v: %#v\n", k, v)
