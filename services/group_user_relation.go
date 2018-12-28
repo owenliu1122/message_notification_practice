@@ -27,7 +27,7 @@ func (svc *GroupUserRelationService) Create(gur []root.GroupUserRelation) error 
 	for _, one := range gur {
 		log.Debugf("INSERT: %v\n", one)
 
-		cacheKey := svc.getGroupUsersCacheKey(one.GroupID)
+		cacheKey := getGroupUsersCacheKey(one.GroupID)
 
 		err = svc.db.Create(&one).Error
 		if err != nil {
@@ -60,7 +60,7 @@ func (svc *GroupUserRelationService) Create(gur []root.GroupUserRelation) error 
 
 func (svc *GroupUserRelationService) Update(gur *root.GroupUserRelation, fields map[string]interface{}) error {
 	panic("not implemented")
-	svc.cache.Delete(svc.getGroupUsersCacheKey(gur.GroupID))
+	svc.cache.Delete(getGroupUsersCacheKey(gur.GroupID))
 	return nil
 }
 
@@ -68,7 +68,7 @@ func (svc *GroupUserRelationService) FindMembers(id uint64) ([]root.User, error)
 	var users []root.User
 	gur := root.GroupUserRelation{GroupID: id}
 
-	cacheKey := svc.getGroupUsersCacheKey(gur.GroupID)
+	cacheKey := getGroupUsersCacheKey(gur.GroupID)
 	if svc.cache.IsExist(cacheKey) {
 		if err := svc.cache.SMembers(cacheKey, &users); err != nil {
 			svc.cache.Delete(cacheKey)
@@ -131,12 +131,13 @@ func (svc *GroupUserRelationService) Delete(gur []root.GroupUserRelation) error 
 	for _, one := range gur {
 		log.Debugf("DELETE: %v\n", one)
 
-		svc.cache.Delete(svc.getGroupUsersCacheKey(one.GroupID))
-
 		if err := svc.db.Where(one).Delete(root.GroupUserRelation{}).Error; err != nil {
 			tx.Rollback()
 			return err
 		}
+
+		svc.cache.Delete(getGroupUsersCacheKey(one.GroupID))
+
 	}
 
 	tx.Commit()
@@ -144,6 +145,6 @@ func (svc *GroupUserRelationService) Delete(gur []root.GroupUserRelation) error 
 	return nil
 }
 
-func (svc *GroupUserRelationService) getGroupUsersCacheKey(groupId uint64) string {
+func getGroupUsersCacheKey(groupId uint64) string {
 	return fmt.Sprintf("group_user_relations_group_users_%d", groupId)
 }

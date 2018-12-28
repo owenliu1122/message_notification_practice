@@ -49,7 +49,7 @@ var dashboardCmd = &cobra.Command{
 		e.Use(middleware.Recover())
 
 		grpCtl := controllers.NewGroupController(services.NewGroupService(db))
-		usrCtl := controllers.NewUserController(services.NewUserService(db))
+		usrCtl := controllers.NewUserController(services.NewUserService(db, cache))
 		gurCtl := controllers.NewGroupUserRelationController(services.NewGroupUserRelationService(db, cache))
 
 		// Groups Routes

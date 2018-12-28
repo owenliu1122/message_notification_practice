@@ -1,7 +1,6 @@
 package redis
 
 import (
-	"encoding/json"
 	"fmt"
 	goredis "github.com/go-redis/redis"
 	log "gopkg.in/cihub/seelog.v2"
@@ -12,7 +11,7 @@ import (
 type Cache interface {
 	Get(key string, outVal interface{}) error
 	Set(key string, inVal interface{}, timeout time.Duration) error
-	Delete(key string) error
+	Delete(key ...string) error
 	IsExist(key string) bool
 	Expire(key string, expiration time.Duration) error
 	ExpireAt(key string, tm time.Time) error
@@ -101,9 +100,9 @@ func (cache *CacheRedis) Set(key string, inVal interface{}, expiration time.Dura
 	return err
 }
 
-func (cache *CacheRedis) Delete(key string) error {
+func (cache *CacheRedis) Delete(key ...string) error {
 
-	_, err := cache.Client.Del(key).Result()
+	_, err := cache.Client.Del(key...).Result()
 	if err != nil {
 		log.Errorf("cache: Del %s failed: %s", key, err)
 	}
@@ -229,40 +228,41 @@ func makeSliceNextElemFunc(v reflect.Value) func() reflect.Value {
 	}
 }
 
-type Test struct {
-	Name string `json:"name"`
-	Age  uint8  `json:"age"`
-}
+//
+//type Test struct {
+//	Name string `json:"name"`
+//	Age  uint8  `json:"age"`
+//}
+//
+//func init() {
+//	var (
+//		cache *CacheRedis
+//		err   error
+//	)
+//
+//	if cache, err = NewRedisCli("redis://localhost:6379/0", json.Marshal, json.Unmarshal); err != nil {
+//		panic(err)
+//	}
+//
+//	info := []Test{{"owenjiaxing", 15}, {"ssss", 30}}
+//
+//	cache.SAdd("owen", info)
+//
+//	var result []Test
+//	cache.SMembers("owen", &result)
+//	fmt.Printf("resuslt: %#v\n", result)
 
-func init() {
-	var (
-		cache *CacheRedis
-		err   error
-	)
+//cache.ExpireAt("owen", time.Now())
+//cache.ExpireAt("owen", time.Now())
 
-	if cache, err = NewRedisCli("redis://localhost:6379/0", json.Marshal, json.Unmarshal); err != nil {
-		panic(err)
-	}
-
-	info := []Test{{"owenjiaxing", 15}, {"ssss", 30}}
-
-	cache.SAdd("owen", info[0], info[1])
-
-	var result []Test
-	cache.SMembers("owen", &result)
-	fmt.Printf("resuslt: %#v\n", result)
-
-	//cache.ExpireAt("owen", time.Now())
-	//cache.ExpireAt("owen", time.Now())
-
-	//cache.Set("myinfo_1", info, 60*time.Second)
-	//info.Age = 100
-	//cache.Set("myinfo_2", info, 60*time.Second)
-	//
-	//var infoRet []Test
-	//
-	//cache.Get("myinfo*", &infoRet)
-	//fmt.Printf("infoRet: %#v\n", infoRet)
-	//time.Sleep(5*time.Second)
-	//fmt.Printf("myinfo exists: %v\n", cache.Delete("myinfo"))
-}
+//cache.Set("myinfo_1", info, 60*time.Second)
+//info.Age = 100
+//cache.Set("myinfo_2", info, 60*time.Second)
+//
+//var infoRet []Test
+//
+//cache.Get("myinfo*", &infoRet)
+//fmt.Printf("infoRet: %#v\n", infoRet)
+//time.Sleep(5*time.Second)
+//fmt.Printf("myinfo exists: %v\n", cache.Delete("myinfo"))
+//}
