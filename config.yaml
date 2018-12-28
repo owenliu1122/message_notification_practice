@@ -34,7 +34,7 @@ sender:
     sendsvc:
       domain: "c2FuZGJveGFhZmYxYjc2OWEzYzQyOWRhZWY3NzdkZmVlZDhmMTczLm1haWxndW4ub3Jn"
       privateapikey: "a2V5LWExYTUxMjA4MDdkMmRjZGIyYTc2Y2UwYmE5OTljZGVi"
-      publicapikey: "pubkey-25f9fdfa7af58880311ec28977c10f6c" 
+      publicapikey: "cHVia2V5LTI1ZjlmZGZhN2FmNTg4ODAzMTFlYzI4OTc3YzEwZjZj" 
   phone:
     consumer:
       queue: "push.msg.q.notification.phone"    

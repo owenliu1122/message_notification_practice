@@ -1,6 +1,8 @@
 package services
 
 import (
+	b64 "encoding/base64"
+	"errors"
 	"github.com/eapache/go-resiliency/retrier"
 	log "gopkg.in/cihub/seelog.v2"
 	"gopkg.in/mailgun/mailgun-go.v1"
@@ -8,18 +10,22 @@ import (
 	"time"
 )
 
-//var domain string = "sandboxaaff1b769a3c429daef777dfeed8f173.mailgun.org" // e.g. mg.yourcompany.com
-//var privateAPIKey string = "61604cff9615cfa175f4340991b8c713-9b463597-ad5d1076"
-//var publicAPIKey string = "pubkey-25f9fdfa7af58880311ec28977c10f6c"
-
 func NewMailSenderService(toolCfg interface{}) *MailSenderService {
 	cfg := toolCfg.(map[string]string)
 
+	domain, _ := b64.StdEncoding.DecodeString(cfg["domain"])
+	privateapikey, _ := b64.StdEncoding.DecodeString(cfg["privateapikey"])
+	publicapikey, _ := b64.StdEncoding.DecodeString(cfg["publicapikey"])
+
+	log.Info("mailgun domain: ", string(domain))
+	log.Info("mailgun apikey: ", string(privateapikey))
+	log.Info("mailgun pubkey: ", string(publicapikey))
+
 	return &MailSenderService{
 		mg: mailgun.NewMailgun(
-			cfg["domain"],
-			cfg["privateapikey"],
-			cfg["publicapikey"],
+			string(domain),
+			string(privateapikey),
+			string(publicapikey),
 		),
 	}
 }
