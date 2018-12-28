@@ -5,7 +5,7 @@ import (
 	"message_notification_practice"
 )
 
-func NewWeChatSenderService(toolCfg interface{}) *WeChatSenderService {
+func NewWeChatSenderService(toolCfg map[string]string) *WeChatSenderService {
 	return &WeChatSenderService{}
 }
 

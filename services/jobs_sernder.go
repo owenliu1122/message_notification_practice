@@ -5,7 +5,7 @@ import (
 	"message_notification_practice"
 )
 
-func NewSenderService(msgType string, sendToolCfg interface{}) SenderService {
+func NewSenderService(msgType string, sendToolCfg map[string]string) SenderService {
 
 	switch msgType {
 	case MsgTypeWeChat:

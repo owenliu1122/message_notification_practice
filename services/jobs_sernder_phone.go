@@ -5,7 +5,7 @@ import (
 	"message_notification_practice"
 )
 
-func NewPhoneSenderService(toolCfg interface{}) *PhoneSenderService {
+func NewPhoneSenderService(toolCfg map[string]string) *PhoneSenderService {
 	return &PhoneSenderService{}
 }
 

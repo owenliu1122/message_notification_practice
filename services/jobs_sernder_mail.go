@@ -10,8 +10,8 @@ import (
 	"time"
 )
 
-func NewMailSenderService(toolCfg interface{}) *MailSenderService {
-	cfg := toolCfg.(map[string]string)
+func NewMailSenderService(cfg map[string]string) *MailSenderService {
+	//cfg := toolCfg.(map[string]string)
 
 	domain, _ := b64.StdEncoding.DecodeString(cfg["domain"])
 	privateapikey, _ := b64.StdEncoding.DecodeString(cfg["privateapikey"])
