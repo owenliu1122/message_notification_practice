@@ -5,6 +5,7 @@ import (
 	"fmt"
 	goredis "github.com/go-redis/redis"
 	log "gopkg.in/cihub/seelog.v2"
+	"reflect"
 	"time"
 )
 
@@ -18,7 +19,7 @@ type Cache interface {
 	Close() error
 	// Set
 	SAdd(key string, inVal ...interface{}) error
-	SMembers(key string) (interface{}, error)
+	SMembers(key string, outSlice interface{}) error
 }
 
 type MarshalFunc func(interface{}) ([]byte, error)
@@ -159,12 +160,73 @@ func (cache *CacheRedis) SAdd(key string, inVal ...interface{}) error {
 	return err
 }
 
-func (cache *CacheRedis) SMembers(key string) (interface{}, error) {
-	result, err := cache.Client.SMembers(key).Result()
+func (cache *CacheRedis) SMembers(key string, outSlice interface{}) error {
+
+	valSlice, err := cache.Client.SMembers(key).Result()
 	if err != nil {
 		log.Errorf("cache: SMembers %s failed: %s", key, err)
+		return err
 	}
-	return result, err
+
+	if len(valSlice) == 0 {
+		return nil
+	}
+
+	v := reflect.ValueOf(outSlice)
+	if !v.IsValid() {
+		return fmt.Errorf("cache: SMembers(nil)")
+	}
+	if v.Kind() != reflect.Ptr {
+		return fmt.Errorf("cache: SMembers(non-pointer %T)", outSlice)
+	}
+	v = v.Elem()
+	if v.Kind() != reflect.Slice {
+		return fmt.Errorf("cache: SMembers(non-slice %T)", outSlice)
+	}
+
+	next := makeSliceNextElemFunc(v)
+	for i, s := range valSlice {
+		elem := next()
+		if err := cache.Unmarshal([]byte(s), elem.Addr().Interface()); err != nil {
+			err = fmt.Errorf("cache: SMembers index=%d value=%q failed: %s", i, s, err)
+			return err
+		}
+	}
+
+	return err
+}
+
+func makeSliceNextElemFunc(v reflect.Value) func() reflect.Value {
+	elemType := v.Type().Elem()
+
+	if elemType.Kind() == reflect.Ptr {
+		elemType = elemType.Elem()
+		return func() reflect.Value {
+			if v.Len() < v.Cap() {
+				v.Set(v.Slice(0, v.Len()+1))
+				elem := v.Index(v.Len() - 1)
+				if elem.IsNil() {
+					elem.Set(reflect.New(elemType))
+				}
+				return elem.Elem()
+			}
+
+			elem := reflect.New(elemType)
+			v.Set(reflect.Append(v, elem))
+			return elem.Elem()
+		}
+	}
+
+	zero := reflect.Zero(elemType)
+	return func() reflect.Value {
+		if v.Len() < v.Cap() {
+			v.Set(v.Slice(0, v.Len()+1))
+			return v.Index(v.Len() - 1)
+		}
+
+		v.Set(reflect.Append(v, zero))
+		return v.Index(v.Len() - 1)
+	}
 }
 
 type Test struct {
@@ -185,6 +247,13 @@ func init() {
 	info := []Test{{"owenjiaxing", 15}, {"ssss", 30}}
 
 	cache.SAdd("owen", info[0], info[1])
+
+	var result []Test
+	cache.SMembers("owen", &result)
+	fmt.Printf("resuslt: %#v\n", result)
+
+	//cache.ExpireAt("owen", time.Now())
+	//cache.ExpireAt("owen", time.Now())
 
 	//cache.Set("myinfo_1", info, 60*time.Second)
 	//info.Age = 100
