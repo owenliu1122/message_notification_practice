@@ -1,23 +1,10 @@
 package mq
 
 import (
-	"fmt"
 	"github.com/streadway/amqp"
-	log "gopkg.in/cihub/seelog.v2"
 	"sync"
 	"time"
 )
-
-type MQCfg struct {
-	URL      string `json:"hosts"`
-	Queue    string `json:"queue"`
-	Exchange string `json:"exchange"`
-}
-
-type MQInfo struct {
-	Cfg     MQCfg
-	MsgChan chan interface{} // 消息队列
-}
 
 /*
 BaseMq
@@ -75,11 +62,4 @@ func (mq *BaseMq) Close() error {
 	}
 
 	return nil
-}
-
-func failOnErr(err error, msg string) {
-	if err != nil {
-		log.Errorf("%s:%s", msg, err)
-		panic(fmt.Sprintf("%s:%s", msg, err))
-	}
 }

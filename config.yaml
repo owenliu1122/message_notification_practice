@@ -32,8 +32,8 @@ sender:
     consumer:
       queue: "push.msg.q.notification.mail"
     sendsvc:
-      domain: "sandboxaaff1b769a3c429daef777dfeed8f173.mailgun.org"
-      privateapikey: "61604cff9615cfa175f4340991b8c713-9b463597-ad5d1076"
+      domain: "c2FuZGJveGFhZmYxYjc2OWEzYzQyOWRhZWY3NzdkZmVlZDhmMTczLm1haWxndW4ub3Jn"
+      privateapikey: "a2V5LWExYTUxMjA4MDdkMmRjZGIyYTc2Y2UwYmE5OTljZGVi"
       publicapikey: "pubkey-25f9fdfa7af58880311ec28977c10f6c" 
   phone:
     consumer:

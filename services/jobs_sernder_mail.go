@@ -1,7 +1,6 @@
 package services
 
 import (
-	"errors"
 	"github.com/eapache/go-resiliency/retrier"
 	log "gopkg.in/cihub/seelog.v2"
 	"gopkg.in/mailgun/mailgun-go.v1"
@@ -23,10 +22,6 @@ func NewMailSenderService(toolCfg interface{}) *MailSenderService {
 			cfg["publicapikey"],
 		),
 	}
-
-	//return &MailSenderService {
-	//	mg: mailgun.NewMailgun( domain, privateAPIKey, ""),
-	//}
 }
 
 type MailSenderService struct {
@@ -36,15 +31,16 @@ type MailSenderService struct {
 func (svc *MailSenderService) Handler(msg *root.UserMsg) error {
 
 	log.Debugf("MailSenderService: userMsg: %#v\n", msg)
-	return nil
+	//return nil
 
 	r := retrier.New(retrier.ExponentialBackoff(5, 20*time.Millisecond), nil)
+
+	log.Debugf("MailSenderService: mg: %#v", svc.mg)
 
 	err := r.Run(func() error {
 
 		return errors.New("sender handler happens error")
 
-		log.Debugf("MailSenderService: mg: %#v", svc.mg)
 		resp, id, err := svc.mg.Send(svc.mg.NewMessage(
 			"aaa <83214742@qq.com>",
 			"Hello",
