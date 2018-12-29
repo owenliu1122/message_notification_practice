@@ -46,8 +46,6 @@ func serverProc(cmd *cobra.Command, args []string) {
 
 	defer db.Close()
 
-	time.Sleep(2 * time.Second) // TODO: remove is
-
 	// grpc server
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", serverCmdPort))
 	handleInitError(err, "net")

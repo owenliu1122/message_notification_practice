@@ -17,7 +17,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 )
 
 var (
@@ -106,8 +105,6 @@ func notificationProc(cmd *cobra.Command, args []string) {
 
 	cancel()
 
-	time.Sleep(500 * time.Millisecond)
-
 	log.Debug("Exit Jobs Notification!")
 }
 
@@ -157,8 +154,6 @@ func senderProc(cmd *cobra.Command, args []string) {
 	<-quit
 
 	cancel()
-
-	time.Sleep(500 * time.Millisecond)
 
 	log.Debug("Exit Jobs Sender!")
 }

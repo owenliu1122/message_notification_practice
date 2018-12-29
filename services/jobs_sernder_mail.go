@@ -59,7 +59,5 @@ func (svc *MailSenderService) Handler(msg *root.UserMsg) error {
 
 	})
 
-	time.Sleep(2 * time.Second)
-
 	return err
 }

@@ -50,7 +50,6 @@ func clientProc(cmd *cobra.Command, args []string) {
 
 		log.Debugf("[%d]: %s", i, r.Status)
 
-		time.Sleep(1 * time.Second)
 	}
 
 	quit := make(chan os.Signal, 1)
