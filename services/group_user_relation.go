@@ -35,7 +35,7 @@ func (svc *GroupUserRelationService) Create(gur []root.GroupUserRelation) error 
 			svc.cache.Delete(cacheKey)
 			break
 		}
-		user := root.User{ID: 1}
+		user := root.User{ID: one.UserID}
 
 		if err = svc.db.Find(&user).Error; err != nil {
 			log.Error("group user find user failed, err: ", err)
