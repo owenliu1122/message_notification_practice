@@ -64,7 +64,7 @@ func (ctl *UserController) Update(ctx echo.Context) error {
 
 	log.Infof("GroupController Update -> user: %#v\n", user)
 
-	err := ctl.svc.Update(&user, nil)
+	err := ctl.svc.Update(&user)
 
 	if err != nil {
 		log.Error("update user failed, err: ", err)

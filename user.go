@@ -17,7 +17,7 @@ type User struct {
 // UserService is user record information operation method interface
 type UserService interface {
 	Create(user *User) error
-	Update(user *User, fields map[string]interface{}) error
+	Update(user *User) error
 	Find(id uint64) (*User, error)
 	FindByName(name string) (*User, error)
 	Delete(user *User) error
