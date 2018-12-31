@@ -8,10 +8,16 @@ import "google/api/annotations.proto";
 
 option go_package = "pb";
 
+enum NoticeType {
+    mail = 0;
+    phone = 1;
+    wechat = 2;
+}
+
 
 message MsgNotificationRequest {
     string content = 1;
-    int32  type = 2;
+    repeated NoticeType notice_type = 2;
     uint64 group = 3;
     // repeated uint64 groups = 3;
 }

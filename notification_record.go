@@ -8,6 +8,7 @@ import (
 type NotificationRecord struct {
 	ID           uint64     `gorm:"column:id;primary_key;AUTO_INCREMENT" json:"id"`
 	GroupID      uint64     `gorm:"column:group_id;not null" json:"group_id"`
+	NoticeType   string     `gorm:"column:notice_type;not null" json:"notice_type"`
 	Notification string     `gorm:"column:notification;not null" json:"notification"`
 	CreatedAt    time.Time  `gorm:"column:created_at;not null;DEFAULT:CURRENT_TIMESTAMP" json:"created_at"`
 	UpdatedAt    time.Time  `gorm:"column:updated_at;not null;DEFAULT:CURRENT_TIMESTAMP" json:"updated_at"`

@@ -66,7 +66,6 @@ func (svc *GroupUserRelationService) Create(gur []notice.GroupUserRelation) erro
 func (svc *GroupUserRelationService) Update(gur *notice.GroupUserRelation, fields map[string]interface{}) error {
 	svc.cache.Delete(getGroupUsersCacheKey(gur.GroupID))
 	panic("not implemented")
-	return nil
 }
 
 // FindMembers returns all users that belong with the group id.

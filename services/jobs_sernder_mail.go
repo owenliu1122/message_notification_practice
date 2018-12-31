@@ -43,8 +43,6 @@ func (svc *MailSenderService) Handler(msg *notice.UserMessage) error {
 
 	r := retrier.New(retrier.ExponentialBackoff(5, 20*time.Millisecond), nil)
 
-	log.Debugf("MailSenderService: mg: %#v", svc.mg)
-
 	err := r.Run(func() error {
 
 		//return errors.New("sender handler happens error")
@@ -53,7 +51,7 @@ func (svc *MailSenderService) Handler(msg *notice.UserMessage) error {
 			"aaa <83214742@qq.com>",
 			"Hello",
 			msg.Content,
-			msg.Email,
+			msg.Destination,
 		))
 		log.Debugf("Handler():resp: %s, id: %s, msg: %#v", resp, id, msg)
 

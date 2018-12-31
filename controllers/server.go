@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"message_notification_practice"
 	"message_notification_practice/pb"
 	"message_notification_practice/services"
 
@@ -28,10 +27,7 @@ func (c *ServerController) CheckIn(ctx context.Context, request *pb.MsgNotificat
 
 	log.Debug(request.Content)
 
-	if e := c.notifySrv.Create(&notice.NotificationRecord{
-		GroupID:      request.Group,
-		Notification: request.Content,
-	}); e != nil {
+	if e := c.notifySrv.Create(request); e != nil {
 		log.Error("Insert record failed: ", e.Error())
 	}
 

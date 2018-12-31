@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"message_notification_practice"
 	"message_notification_practice/mq"
+	"message_notification_practice/pb"
+	"strings"
 
 	"github.com/jinzhu/gorm"
 )
@@ -23,15 +25,24 @@ type NotificationService struct {
 }
 
 // Create a notification record.
-func (u *NotificationService) Create(notify *notice.NotificationRecord) error {
+func (u *NotificationService) Create(pbReq *pb.MsgNotificationRequest) error {
 	var err error
 	var jsonBytes []byte
 
-	if err = u.db.Create(notify).Error; err != nil {
+	typesStr := make([]string, len(pbReq.NoticeType))
+	for _, noticeType := range pbReq.NoticeType {
+		typesStr = append(typesStr, noticeType.String())
+	}
+
+	if err = u.db.Create(&notice.NotificationRecord{
+		GroupID:      pbReq.Group,
+		NoticeType:   strings.Join(typesStr, ","),
+		Notification: pbReq.Content,
+	}).Error; err != nil {
 		return err
 	}
 
-	jsonBytes, err = json.Marshal(notify)
+	jsonBytes, err = json.Marshal(pbReq)
 	if err != nil {
 		return err
 	}

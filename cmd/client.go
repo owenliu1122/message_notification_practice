@@ -2,15 +2,16 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/spf13/cobra"
-	"golang.org/x/net/context"
-	"google.golang.org/grpc"
-	log "gopkg.in/cihub/seelog.v2"
 	"message_notification_practice/pb"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/spf13/cobra"
+	"golang.org/x/net/context"
+	"google.golang.org/grpc"
+	log "gopkg.in/cihub/seelog.v2"
 )
 
 var clientCmdHost string
@@ -40,7 +41,7 @@ func clientProc(cmd *cobra.Command, args []string) {
 	reqBody := new(pb.MsgNotificationRequest)
 
 	for i := 3; i < 4; i++ {
-
+		reqBody.NoticeType = []pb.NoticeType{0, 1, 2}
 		reqBody.Content = fmt.Sprintf("gRPC liujx: [%d]", i)
 		reqBody.Group = uint64(i)
 		r, err := c.CheckIn(context.Background(), reqBody)

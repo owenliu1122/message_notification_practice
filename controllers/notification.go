@@ -2,7 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
-	"message_notification_practice"
+	"message_notification_practice/pb"
 	"message_notification_practice/services"
 
 	"github.com/streadway/amqp"
@@ -25,7 +25,7 @@ func NewNotificationController(mqSvc *services.MqSendService) *NotificationContr
 // Handler parse rabbitmq notifications.
 func (ctl *NotificationController) Handler(ctx context.Context, msg *amqp.Delivery) {
 	var err error
-	record := &notice.NotificationRecord{}
+	record := &pb.MsgNotificationRequest{}
 
 	err = json.Unmarshal(msg.Body, record)
 	if err != nil {

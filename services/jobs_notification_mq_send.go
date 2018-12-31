@@ -2,8 +2,10 @@ package services
 
 import (
 	"encoding/json"
+	"fmt"
 	"message_notification_practice"
 	"message_notification_practice/mq"
+	"message_notification_practice/pb"
 
 	log "gopkg.in/cihub/seelog.v2"
 )
@@ -41,59 +43,59 @@ func (svc *MqSendService) RegisterExchangeRouting(tp string, exRouting mq.BasePr
 }
 
 // Send parse send a record to  exchange and routingkey.
-func (svc *MqSendService) Send(record *notice.NotificationRecord) error {
+func (svc *MqSendService) Send(record *pb.MsgNotificationRequest) error {
 
 	var err error
 	var users []notice.User
-	users, err = svc.gurSvc.FindMembers(record.GroupID)
+	users, err = svc.gurSvc.FindMembers(record.Group)
 	if err != nil {
-		log.Error("get group_user_relations failed, err: ", err)
+		return fmt.Errorf("get group_user_relations failed, err: %s", err)
 	}
+
 	for k, v := range svc.exRouting {
 		log.Debugf("exRouting[%s]: %#v\n", k, v)
 	}
+
 	for _, user := range users {
 
 		userMsg := &notice.UserMessage{
 			ID:      user.ID,
 			Name:    user.Name,
-			Content: record.Notification,
-			Email:   user.Email,
-			Phone:   user.Phone,
-			WeChat:  user.Wechat,
+			Content: record.Content,
 		}
 
-		body, e := json.Marshal(&userMsg)
-		if e != nil {
-			log.Error("Email marshal UserMsg failed, err: ", e)
-		}
+		for _, noticeType := range record.NoticeType {
 
-		if len(user.Email) > 0 {
-			if err = svc.mq.Send(svc.exRouting[NoticeTypeMail].Exchange,
-				svc.exRouting[NoticeTypeMail].RoutingKey,
-				body); err != nil {
-				return err
+			strType := noticeType.String()
+
+			switch strType {
+			case NoticeTypeMail:
+				userMsg.Destination = user.Email
+			case NoticeTypePhone:
+				userMsg.Destination = user.Phone
+			case NoticeTypeWeChat:
+				userMsg.Destination = user.Wechat
+			default:
+				return fmt.Errorf("unknown notice type: %s", strType)
 			}
-		}
 
-		if len(user.Phone) > 0 {
-			if err = svc.mq.Send(svc.exRouting[NoticeTypePhone].Exchange,
-				svc.exRouting[NoticeTypePhone].RoutingKey,
-				body); err != nil {
-				return err
+			producerCfg, ok := svc.exRouting[strType]
+			if !ok {
+				return fmt.Errorf("get producer config failed, Unknown notice type: %s", strType)
 			}
-		}
 
-		if len(user.Wechat) > 0 {
-			if err = svc.mq.Send(svc.exRouting[NoticeTypeWeChat].Exchange,
-				svc.exRouting[NoticeTypeWeChat].RoutingKey,
-				body); err != nil {
+			body, e := json.Marshal(&userMsg)
+			if e != nil {
+				return fmt.Errorf("email marshal UserMsg failed, err: %s", e)
+			}
+
+			if err = svc.mq.Send(producerCfg.Exchange, producerCfg.RoutingKey, body); err != nil {
 				return err
 			}
 		}
 	}
 
-	log.Debugf("group_id: %d, %#v\n", record.GroupID, users)
+	log.Debugf("group_id: %d, %#v\n", record.Group, users)
 
 	return err
 }
