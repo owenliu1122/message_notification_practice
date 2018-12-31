@@ -1,18 +1,21 @@
 package controllers
 
 import (
-	"golang.org/x/net/context"
-	log "gopkg.in/cihub/seelog.v2"
 	"message_notification_practice"
 	"message_notification_practice/pb"
 	"message_notification_practice/services"
+
+	"golang.org/x/net/context"
+	log "gopkg.in/cihub/seelog.v2"
 )
 
+// ServerController is a server controller.
 type ServerController struct {
 	//mqChan    chan interface{}
 	notifySrv *services.NotificationService
 }
 
+// NewServerController will returns a server controller.
 func NewServerController(notifySrv *services.NotificationService) *ServerController {
 	return &ServerController{
 		//mqChan:    mqChan,
@@ -20,15 +23,16 @@ func NewServerController(notifySrv *services.NotificationService) *ServerControl
 	}
 }
 
+// CheckIn parse grpc client notification request.
 func (c *ServerController) CheckIn(ctx context.Context, request *pb.MsgNotificationRequest) (*pb.MsgNotificationResponse, error) {
 
 	log.Debug(request.Content)
 
-	if e := c.notifySrv.Create(&root.NotificationRecord{
+	if e := c.notifySrv.Create(&notice.NotificationRecord{
 		GroupID:      request.Group,
 		Notification: request.Content,
 	}); e != nil {
-		log.Error("Insert record failed: ", e)
+		log.Error("Insert record failed: ", e.Error())
 	}
 
 	//c.mqChan <- jsonBytes

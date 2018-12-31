@@ -2,12 +2,14 @@ package redis
 
 import (
 	"fmt"
-	goredis "github.com/go-redis/redis"
-	log "gopkg.in/cihub/seelog.v2"
 	"reflect"
 	"time"
+
+	goredis "github.com/go-redis/redis"
+	log "gopkg.in/cihub/seelog.v2"
 )
 
+// Cache is a redis cache interface
 type Cache interface {
 	Get(key string, outVal interface{}) error
 	Set(key string, inVal interface{}, timeout time.Duration) error
@@ -21,15 +23,20 @@ type Cache interface {
 	SMembers(key string, outSlice interface{}) error
 }
 
+// MarshalFunc type is an adapter to marshal data for cache to redis.
 type MarshalFunc func(interface{}) ([]byte, error)
+
+// UnmarshalFunc type is an adapter to unmarshal cache data.
 type UnmarshalFunc func([]byte, interface{}) error
 
+// CacheRedis is redis cache type.
 type CacheRedis struct {
 	Client    *goredis.Client
 	Marshal   MarshalFunc
 	Unmarshal UnmarshalFunc
 }
 
+// NewRedisCli returns a redis cache type client.
 func NewRedisCli(url string, marshalfn MarshalFunc, unmarshalfn UnmarshalFunc) (*CacheRedis, error) {
 
 	opt, err := goredis.ParseURL(url)
@@ -50,6 +57,7 @@ func NewRedisCli(url string, marshalfn MarshalFunc, unmarshalfn UnmarshalFunc) (
 	return &cache, nil
 }
 
+// GetClient returns redis-go client.
 func (cache *CacheRedis) GetClient() (*goredis.Client, error) {
 	_, err := cache.Client.Ping().Result()
 	if err != nil {
@@ -58,10 +66,12 @@ func (cache *CacheRedis) GetClient() (*goredis.Client, error) {
 	return cache.Client, nil
 }
 
+// Close redis cache client.
 func (cache *CacheRedis) Close() error {
 	return cache.Client.Close()
 }
 
+// Get returns nil error when key does not exist.
 func (cache *CacheRedis) Get(key string, outVal interface{}) error {
 
 	bytes, err := cache.Client.Get(key).Bytes()
@@ -82,6 +92,8 @@ func (cache *CacheRedis) Get(key string, outVal interface{}) error {
 	return nil
 }
 
+// Set key values such as redis set command.
+// Zero expiration means the key has no expiration time.
 func (cache *CacheRedis) Set(key string, inVal interface{}, expiration time.Duration) error {
 
 	bytes, err := cache.Marshal(inVal)
@@ -100,6 +112,7 @@ func (cache *CacheRedis) Set(key string, inVal interface{}, expiration time.Dura
 	return err
 }
 
+// Delete keys from redis cache.
 func (cache *CacheRedis) Delete(key ...string) error {
 
 	_, err := cache.Client.Del(key...).Result()
@@ -110,6 +123,7 @@ func (cache *CacheRedis) Delete(key ...string) error {
 	return err
 }
 
+// IsExist return key exists value, true or false.
 func (cache *CacheRedis) IsExist(key string) bool {
 
 	result, err := cache.Client.Exists(key).Result()
@@ -120,6 +134,7 @@ func (cache *CacheRedis) IsExist(key string) bool {
 	return result > 0
 }
 
+// Expire to set key expiration time.
 func (cache *CacheRedis) Expire(key string, expiration time.Duration) error {
 	_, err := cache.Client.Expire(key, expiration).Result()
 	if err != nil {
@@ -128,6 +143,7 @@ func (cache *CacheRedis) Expire(key string, expiration time.Duration) error {
 	return err
 }
 
+// ExpireAt to set key expiration time.
 func (cache *CacheRedis) ExpireAt(key string, tm time.Time) error {
 	_, err := cache.Client.ExpireAt(key, tm).Result()
 	if err != nil {
@@ -136,8 +152,7 @@ func (cache *CacheRedis) ExpireAt(key string, tm time.Time) error {
 	return err
 }
 
-/* Set */
-
+// SAdd add a member to current set.
 func (cache *CacheRedis) SAdd(key string, inVal ...interface{}) error {
 
 	bytesVals := make([]interface{}, 0, len(inVal))
@@ -149,7 +164,6 @@ func (cache *CacheRedis) SAdd(key string, inVal ...interface{}) error {
 			return err
 		}
 		bytesVals = append(bytesVals, bytes)
-		fmt.Printf("[%d], bytes: %s\n", string(bytes))
 	}
 
 	_, err := cache.Client.SAdd(key, bytesVals...).Result()
@@ -159,6 +173,7 @@ func (cache *CacheRedis) SAdd(key string, inVal ...interface{}) error {
 	return err
 }
 
+// SMembers returns all members in current set.
 func (cache *CacheRedis) SMembers(key string, outSlice interface{}) error {
 
 	valSlice, err := cache.Client.SMembers(key).Result()
@@ -186,9 +201,9 @@ func (cache *CacheRedis) SMembers(key string, outSlice interface{}) error {
 	next := makeSliceNextElemFunc(v)
 	for i, s := range valSlice {
 		elem := next()
-		if err := cache.Unmarshal([]byte(s), elem.Addr().Interface()); err != nil {
-			err = fmt.Errorf("cache: SMembers index=%d value=%q failed: %s", i, s, err)
-			return err
+		if e := cache.Unmarshal([]byte(s), elem.Addr().Interface()); e != nil {
+			e = fmt.Errorf("cache: SMembers index=%d value=%q failed: %s", i, s, e)
+			return e
 		}
 	}
 

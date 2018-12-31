@@ -2,13 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/mysql"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/keepalive"
-	log "gopkg.in/cihub/seelog.v2"
 	"message_notification_practice/controllers"
 	"message_notification_practice/mq"
 	"message_notification_practice/pb"
@@ -18,6 +11,13 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/jinzhu/gorm"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
+	log "gopkg.in/cihub/seelog.v2"
 )
 
 var serverCmdPort int

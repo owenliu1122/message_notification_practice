@@ -2,6 +2,8 @@ package mq
 
 import (
 	"context"
+	"errors"
+
 	"github.com/streadway/amqp"
 	log "gopkg.in/cihub/seelog.v2"
 )
@@ -47,7 +49,7 @@ func (mq *BaseMq) closeConsumer() error {
 	var err error
 
 	if mq.cm == nil || len(mq.cm) == 0 {
-		return err
+		return errors.New("mq consumer have not been init")
 	}
 
 	for k, v := range mq.cm {

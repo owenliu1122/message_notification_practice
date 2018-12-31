@@ -1,21 +1,25 @@
 package controllers
 
 import (
-	"github.com/labstack/echo"
-	"github.com/labstack/gommon/log"
 	"message_notification_practice"
 	"message_notification_practice/services"
 	"net/http"
+
+	"github.com/labstack/echo"
+	"github.com/labstack/gommon/log"
 )
 
+// NewUserController returns an user table operation controller.
 func NewUserController(us *services.UserService) *UserController {
 	return &UserController{svc: us}
 }
 
+// UserController is an user table operation controller.
 type UserController struct {
 	svc *services.UserService
 }
 
+// List will return all users in the users table.
 func (ctl *UserController) List(ctx echo.Context) error {
 
 	res, err := ctl.svc.Find(0)
@@ -28,9 +32,10 @@ func (ctl *UserController) List(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, res)
 }
 
+// Create will insert a new user record.
 func (ctl *UserController) Create(ctx echo.Context) error {
 
-	var user root.User
+	var user notice.User
 	if err := ctx.Bind(&user); err != nil {
 		log.Error("add user get body failed, err: ", err)
 		return ctx.String(http.StatusBadRequest, err.Error())
@@ -48,9 +53,10 @@ func (ctl *UserController) Create(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, user)
 }
 
+// Update will update an user record.
 func (ctl *UserController) Update(ctx echo.Context) error {
 
-	var user root.User
+	var user notice.User
 	if err := ctx.Bind(&user); err != nil {
 		log.Error("update group get body failed, err: ", err)
 		return ctx.String(http.StatusBadRequest, err.Error())
@@ -68,9 +74,10 @@ func (ctl *UserController) Update(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, user)
 }
 
+// Delete will delete an user record.
 func (ctl *UserController) Delete(ctx echo.Context) error {
 
-	var user root.User
+	var user notice.User
 	if err := ctx.Bind(&user); err != nil {
 		log.Error("delete user get body failed, err: ", err)
 		return ctx.String(http.StatusBadRequest, err.Error())

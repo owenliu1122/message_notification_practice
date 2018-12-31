@@ -1,29 +1,35 @@
 package services
 
 import (
-	"github.com/jinzhu/gorm"
 	"message_notification_practice"
+
+	"github.com/jinzhu/gorm"
 )
 
+// NewGroupService returns group record operation service.
 func NewGroupService(db *gorm.DB) *GroupService {
 	return &GroupService{db: db}
 }
 
+// GroupService is a group record operation service.
 type GroupService struct {
 	db *gorm.DB
 }
 
-func (u *GroupService) Create(group *root.Group) error {
+// Create a group record.
+func (u *GroupService) Create(group *notice.Group) error {
 	return u.db.Create(group).Error
 }
 
-func (u *GroupService) Update(group *root.Group, fields map[string]interface{}) error {
+// Update a group record.
+func (u *GroupService) Update(group *notice.Group) error {
 	return u.db.Model(group).Updates(*group).Error
 }
 
-func (u *GroupService) Find(id uint) ([]root.Group, error) {
+// Find a group record by id.
+func (u *GroupService) Find(id uint) ([]notice.Group, error) {
 
-	var groups []root.Group
+	var groups []notice.Group
 
 	err := u.db.Find(&groups).Error
 	//err := u.db.Raw("select * from groups").Scan(&groups).Error
@@ -31,10 +37,12 @@ func (u *GroupService) Find(id uint) ([]root.Group, error) {
 	return groups, err
 }
 
-func (u *GroupService) FindByName(name string) (*root.Group, error) {
+// FindByName a group record by name.
+func (u *GroupService) FindByName(name string) (*notice.Group, error) {
 	panic("not implemented")
 }
 
-func (u *GroupService) Delete(group *root.Group) (*root.Group, error) {
+// Delete a group record.
+func (u *GroupService) Delete(group *notice.Group) (*notice.Group, error) {
 	return group, u.db.Delete(group).Error
 }

@@ -1,7 +1,7 @@
 server:
   mysql: "root:123456@/msg_notification?charset=utf8&parseTime=True&loc=Local"
   rabbitmq: "amqp://liujx:Liujiaxing@localhost:5672/"
-  
+
   redis: "redis://localhost:6379/0"
 
   mqexchange: "t.msg.ex"

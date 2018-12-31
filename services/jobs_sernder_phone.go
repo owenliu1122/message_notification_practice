@@ -1,17 +1,21 @@
 package services
 
 import (
-	log "gopkg.in/cihub/seelog.v2"
 	"message_notification_practice"
+
+	log "gopkg.in/cihub/seelog.v2"
 )
 
+// NewPhoneSenderService return a mail sender service.
 func NewPhoneSenderService(toolCfg map[string]string) *PhoneSenderService {
 	return &PhoneSenderService{}
 }
 
+// PhoneSenderService is a phone sender service.
 type PhoneSenderService struct{}
 
-func (svc *PhoneSenderService) Handler(msg *root.UserMsg) error {
+// Handler parse a phone message that needs to be sent.
+func (svc *PhoneSenderService) Handler(msg *notice.UserMessage) error {
 
 	// TODO: not implementation
 	log.Debugf("PhoneSenderService: userMsg: %#v\n", msg)

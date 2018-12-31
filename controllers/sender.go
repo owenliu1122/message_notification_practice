@@ -3,26 +3,30 @@ package controllers
 import (
 	"context"
 	"encoding/json"
+	"message_notification_practice"
+
 	"github.com/streadway/amqp"
 	log "gopkg.in/cihub/seelog.v2"
-	"message_notification_practice"
 
 	"message_notification_practice/services"
 )
 
+// SenderController is a sender notification controller
 type SenderController struct {
 	sendSvc services.SenderService
 }
 
+// NewSenderController returns a controller for sending notifications.
 func NewSenderController(sendSvc services.SenderService) *SenderController {
 	return &SenderController{
 		sendSvc: sendSvc,
 	}
 }
 
+// Handler parses the Sender controller
 func (ctl *SenderController) Handler(ctx context.Context, msg *amqp.Delivery) {
 
-	userMsg := root.UserMsg{}
+	userMsg := notice.UserMessage{}
 
 	if err := json.Unmarshal(msg.Body, &userMsg); err != nil {
 		log.Error("Unmarshal MsgNotificationRequest Body failed, err: ", err)
@@ -32,7 +36,7 @@ func (ctl *SenderController) Handler(ctx context.Context, msg *amqp.Delivery) {
 	log.Debugf("SenderController:%T, %#v\n", ctl.sendSvc, userMsg)
 
 	if err := ctl.sendSvc.Handler(&userMsg); err != nil {
-		log.Error("get an error, handle it, err: ", err)
+		log.Error("get an error, handle it, err: ", err.Error())
 		return
 	}
 

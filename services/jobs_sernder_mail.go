@@ -2,14 +2,15 @@ package services
 
 import (
 	b64 "encoding/base64"
-	"errors"
+	"message_notification_practice"
+	"time"
+
 	"github.com/eapache/go-resiliency/retrier"
 	log "gopkg.in/cihub/seelog.v2"
 	"gopkg.in/mailgun/mailgun-go.v1"
-	"message_notification_practice"
-	"time"
 )
 
+// NewMailSenderService return a mail sender service.
 func NewMailSenderService(cfg map[string]string) *MailSenderService {
 	//cfg := toolCfg.(map[string]string)
 
@@ -30,14 +31,15 @@ func NewMailSenderService(cfg map[string]string) *MailSenderService {
 	}
 }
 
+// MailSenderService is a mail sender service.
 type MailSenderService struct {
 	mg mailgun.Mailgun
 }
 
-func (svc *MailSenderService) Handler(msg *root.UserMsg) error {
+// Handler parse a email message that needs to be sent.
+func (svc *MailSenderService) Handler(msg *notice.UserMessage) error {
 
 	log.Debugf("MailSenderService: userMsg: %#v\n", msg)
-	//return nil
 
 	r := retrier.New(retrier.ExponentialBackoff(5, 20*time.Millisecond), nil)
 
@@ -45,7 +47,7 @@ func (svc *MailSenderService) Handler(msg *root.UserMsg) error {
 
 	err := r.Run(func() error {
 
-		return errors.New("sender handler happens error")
+		//return errors.New("sender handler happens error")
 
 		resp, id, err := svc.mg.Send(svc.mg.NewMessage(
 			"aaa <83214742@qq.com>",

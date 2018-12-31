@@ -1,12 +1,14 @@
 package services
 
 import (
-	"github.com/jinzhu/gorm"
-	"github.com/labstack/gommon/log"
 	"message_notification_practice"
 	"message_notification_practice/redis"
+
+	"github.com/jinzhu/gorm"
+	"github.com/labstack/gommon/log"
 )
 
+// NewUserService returns user record operation service.
 func NewUserService(db *gorm.DB, cache redis.Cache) *UserService {
 	return &UserService{
 		db:    db,
@@ -14,16 +16,19 @@ func NewUserService(db *gorm.DB, cache redis.Cache) *UserService {
 	}
 }
 
+// UserService is a user record operation service.
 type UserService struct {
 	db    *gorm.DB
 	cache redis.Cache
 }
 
-func (u *UserService) Create(user *root.User) error {
+// Create a user record.
+func (u *UserService) Create(user *notice.User) error {
 	return u.db.Create(user).Error
 }
 
-func (u *UserService) Update(user *root.User, fields map[string]interface{}) error {
+// Update a user record.
+func (u *UserService) Update(user *notice.User) error {
 	if err := u.db.Model(user).Updates(*user).Error; err != nil {
 		return err
 	}
@@ -33,8 +38,9 @@ func (u *UserService) Update(user *root.User, fields map[string]interface{}) err
 	return nil
 }
 
-func (u *UserService) Find(id uint) ([]root.User, error) {
-	var users []root.User
+// Find a user record by id.
+func (u *UserService) Find(id uint) ([]notice.User, error) {
+	var users []notice.User
 
 	err := u.db.Find(&users).Error
 	//err := u.db.Raw("select * from groups").Scan(&groups).Error
@@ -42,11 +48,13 @@ func (u *UserService) Find(id uint) ([]root.User, error) {
 	return users, err
 }
 
-func (u *UserService) FindByName(name string) (*root.User, error) {
+// FindByName a user record by name.
+func (u *UserService) FindByName(name string) (*notice.User, error) {
 	panic("not implemented")
 }
 
-func (u *UserService) Delete(user *root.User) (*root.User, error) {
+// Delete a user record.
+func (u *UserService) Delete(user *notice.User) (*notice.User, error) {
 	if err := u.db.Delete(user).Error; err != nil {
 		return nil, err
 	}
@@ -56,8 +64,8 @@ func (u *UserService) Delete(user *root.User) (*root.User, error) {
 	return user, nil
 }
 
-func (u *UserService) deleteGroupCaches(user *root.User) error {
-	var gurs []root.GroupUserRelation
+func (u *UserService) deleteGroupCaches(user *notice.User) error {
+	var gurs []notice.GroupUserRelation
 
 	if err := u.db.Where("user_id = ?", user.ID).Select("group_id").Find(&gurs).Error; err != nil {
 		log.Errorf("user update find belone group id failed, err: ", err)

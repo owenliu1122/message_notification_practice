@@ -1,6 +1,7 @@
-package root
+package notice
 
-type UserMsg struct {
+// UserMessage is a message record that notifies the user.
+type UserMessage struct {
 	ID      uint64 `json:"id"`
 	Name    string `json:"name"`
 	Content string `json:"content"`

@@ -3,19 +3,19 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/mysql"
-	"github.com/labstack/echo"
-	"github.com/labstack/echo/middleware"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	log "gopkg.in/cihub/seelog.v2"
 	"message_notification_practice/controllers"
 	"message_notification_practice/redis"
 	"message_notification_practice/services"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/jinzhu/gorm"
+	"github.com/labstack/echo"
+	"github.com/labstack/echo/middleware"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	log "gopkg.in/cihub/seelog.v2"
 )
 
 // dashboardCmd represents the server command

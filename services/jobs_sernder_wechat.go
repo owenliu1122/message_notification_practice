@@ -1,17 +1,21 @@
 package services
 
 import (
-	log "gopkg.in/cihub/seelog.v2"
 	"message_notification_practice"
+
+	log "gopkg.in/cihub/seelog.v2"
 )
 
+// NewWeChatSenderService return a wechat sender service.
 func NewWeChatSenderService(toolCfg map[string]string) *WeChatSenderService {
 	return &WeChatSenderService{}
 }
 
+// WeChatSenderService is a wechat sender service.
 type WeChatSenderService struct{}
 
-func (svc *WeChatSenderService) Handler(msg *root.UserMsg) error {
+// Handler parse a wechat message that needs to be sent.
+func (svc *WeChatSenderService) Handler(msg *notice.UserMessage) error {
 
 	// TODO: not implementation
 	log.Debugf("WeChatSenderService: userMsg: %#v\n", msg)

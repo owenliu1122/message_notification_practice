@@ -2,11 +2,13 @@ package services
 
 import (
 	"encoding/json"
-	"github.com/jinzhu/gorm"
 	"message_notification_practice"
 	"message_notification_practice/mq"
+
+	"github.com/jinzhu/gorm"
 )
 
+// NewNotificationService returns a notification record operation service.
 func NewNotificationService(db *gorm.DB, mq *mq.BaseMq) *NotificationService {
 	return &NotificationService{
 		db: db,
@@ -14,14 +16,20 @@ func NewNotificationService(db *gorm.DB, mq *mq.BaseMq) *NotificationService {
 	}
 }
 
+// NotificationService is a notification record operation service.
 type NotificationService struct {
 	db *gorm.DB
 	mq *mq.BaseMq
 }
 
-func (u *NotificationService) Create(notify *root.NotificationRecord) error {
+// Create a notification record.
+func (u *NotificationService) Create(notify *notice.NotificationRecord) error {
 	var err error
 	var jsonBytes []byte
+
+	if err = u.db.Create(notify).Error; err != nil {
+		return err
+	}
 
 	jsonBytes, err = json.Marshal(notify)
 	if err != nil {
@@ -33,21 +41,25 @@ func (u *NotificationService) Create(notify *root.NotificationRecord) error {
 		return err
 	}
 
-	return u.db.Create(notify).Error
+	return err
 }
 
-func (u *NotificationService) Update(user *root.NotificationRecord, fields map[string]interface{}) error {
+// Update notification records.
+func (u *NotificationService) Update(user *notice.NotificationRecord, fields map[string]interface{}) error {
 	panic("not implemented")
 }
 
-func (u *NotificationService) Find(id uint) (*root.NotificationRecord, error) {
+// Find a notification record.
+func (u *NotificationService) Find(id uint) (*notice.NotificationRecord, error) {
 	panic("not implemented")
 }
 
-func (u *NotificationService) FindByName(name string) (*root.NotificationRecord, error) {
+// FindByName a notification record.
+func (u *NotificationService) FindByName(name string) (*notice.NotificationRecord, error) {
 	panic("not implemented")
 }
 
-func (u *NotificationService) Delete(user *root.NotificationRecord) (*root.NotificationRecord, error) {
+// Delete a notification record.
+func (u *NotificationService) Delete(user *notice.NotificationRecord) (*notice.NotificationRecord, error) {
 	panic("not implemented")
 }

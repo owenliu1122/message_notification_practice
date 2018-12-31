@@ -3,15 +3,17 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/spf13/viper"
 	"message_notification_practice/redis"
 	"message_notification_practice/services"
 
+	"github.com/spf13/viper"
+
 	"context"
+	"message_notification_practice/controllers"
+
 	"github.com/jinzhu/gorm"
 	"github.com/spf13/cobra"
 	log "gopkg.in/cihub/seelog.v2"
-	"message_notification_practice/controllers"
 	//"message_notification_practice/model"
 	"message_notification_practice/mq"
 	"os"
@@ -39,6 +41,7 @@ func notificationProc(cmd *cobra.Command, args []string) {
 
 	log.Debug("Start Jobs Notify!")
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	cfg := viper.GetStringMapString(cmd.Use)
 	cfgCM := viper.Sub(cmd.Use).GetStringMapString("consumer")
@@ -69,7 +72,7 @@ func notificationProc(cmd *cobra.Command, args []string) {
 	defer mqCli.Close()
 
 	if e := mqCli.InitProducer("", ""); e != nil {
-		log.Error("InitProducer failed, err: ", e)
+		log.Errorf("InitProducer failed, err: %s\n", e.Error())
 	}
 
 	mqSendSvc := services.NewMqSendService(mqCli, services.NewGroupUserRelationService(db, cache))
@@ -102,8 +105,6 @@ func notificationProc(cmd *cobra.Command, args []string) {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 	<-quit
-
-	cancel()
 
 	log.Debug("Exit Jobs Notification!")
 }
