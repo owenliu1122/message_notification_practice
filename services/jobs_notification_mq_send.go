@@ -4,16 +4,15 @@ import (
 	"encoding/json"
 	"message_notification_practice"
 	"message_notification_practice/mq"
-	"time"
 
 	log "gopkg.in/cihub/seelog.v2"
 )
 
 // send notification channel type
 const (
-	MsgTypeMail   = "mail"
-	MsgTypePhone  = "phone"
-	MsgTypeWeChat = "wechat"
+	NoticeTypeMail   = "mail"
+	NoticeTypePhone  = "phone"
+	NoticeTypeWeChat = "wechat"
 )
 
 // MqSendService is mq send service.
@@ -70,24 +69,24 @@ func (svc *MqSendService) Send(record *notice.NotificationRecord) error {
 		}
 
 		if len(user.Email) > 0 {
-			if err = svc.mq.Send(svc.exRouting[MsgTypeMail].Exchange,
-				svc.exRouting[MsgTypeMail].RoutingKey,
+			if err = svc.mq.Send(svc.exRouting[NoticeTypeMail].Exchange,
+				svc.exRouting[NoticeTypeMail].RoutingKey,
 				body); err != nil {
 				return err
 			}
 		}
 
 		if len(user.Phone) > 0 {
-			if err = svc.mq.Send(svc.exRouting[MsgTypePhone].Exchange,
-				svc.exRouting[MsgTypePhone].RoutingKey,
+			if err = svc.mq.Send(svc.exRouting[NoticeTypePhone].Exchange,
+				svc.exRouting[NoticeTypePhone].RoutingKey,
 				body); err != nil {
 				return err
 			}
 		}
 
 		if len(user.Wechat) > 0 {
-			if err = svc.mq.Send(svc.exRouting[MsgTypeWeChat].Exchange,
-				svc.exRouting[MsgTypeWeChat].RoutingKey,
+			if err = svc.mq.Send(svc.exRouting[NoticeTypeWeChat].Exchange,
+				svc.exRouting[NoticeTypeWeChat].RoutingKey,
 				body); err != nil {
 				return err
 			}
@@ -95,8 +94,6 @@ func (svc *MqSendService) Send(record *notice.NotificationRecord) error {
 	}
 
 	log.Debugf("group_id: %d, %#v\n", record.GroupID, users)
-
-	time.Sleep(2 * time.Second) // TODO: remove debug
 
 	return err
 }

@@ -3,9 +3,9 @@ server:
   rabbitmq: "amqp://liujx:Liujiaxing@localhost:5672/"
 
   redis: "redis://localhost:6379/0"
-
-  mqexchange: "t.msg.ex"
-  mqroutingkey: "push.msg.q"
+  producer:
+    routingkey: "push.msg.q"
+    exchange: "t.msg.ex"
 
 notification:
   mysql: "root:123456@/msg_notification?charset=utf8&parseTime=True&loc=Local"
@@ -15,32 +15,31 @@ notification:
     queue: "push.msg.q"
   producer:
     mail:
-      mqexchange: "t.msg.ex.notification"
-      mqroutingkey: "push.msg.q.notification.mail"    
+      exchange: "t.msg.ex.notification"
+      routingkey: "push.msg.q.notification.mail"
     phone:
-      mqexchange: "t.msg.ex.notification"
-      mqroutingkey: "push.msg.q.notification.phone"    
+      exchange: "t.msg.ex.notification"
+      routingkey: "push.msg.q.notification.phone"
     wechat:
-      mqexchange: "t.msg.ex.notification"
-      mqroutingkey: "push.msg.q.notification.wechat"    
+      exchange: "t.msg.ex.notification"
+      routingkey: "push.msg.q.notification.wechat"
 
 sender:
   mysql: "root:123456@/msg_notification?charset=utf8&parseTime=True&loc=Local"
   rabbitmq: "amqp://liujx:Liujiaxing@localhost:5672/"
   redis: "redis://localhost:6379/0"
-  mail:
-    consumer:
+  consumer:
+    mail:
       queue: "push.msg.q.notification.mail"
-    sendsvc:
+    phone:
+      queue: "push.msg.q.notification.phone"
+    wechat:
+      queue: "push.msg.q.notification.wechat"
+
+  sendservice:
       domain: "c2FuZGJveGFhZmYxYjc2OWEzYzQyOWRhZWY3NzdkZmVlZDhmMTczLm1haWxndW4ub3Jn"
       privateapikey: "a2V5LWExYTUxMjA4MDdkMmRjZGIyYTc2Y2UwYmE5OTljZGVi"
-      publicapikey: "cHVia2V5LTI1ZjlmZGZhN2FmNTg4ODAzMTFlYzI4OTc3YzEwZjZj" 
-  phone:
-    consumer:
-      queue: "push.msg.q.notification.phone"    
-  wechat:
-    consumer:
-      queue: "push.msg.q.notification.wechat" 
+      publicapikey: "cHVia2V5LTI1ZjlmZGZhN2FmNTg4ODAzMTFlYzI4OTc3YzEwZjZj"
 
 dashboard:
   mysql: "root:123456@/msg_notification?charset=utf8&parseTime=True&loc=Local"

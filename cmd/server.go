@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"message_notification_practice"
 	"message_notification_practice/controllers"
 	"message_notification_practice/mq"
 	"message_notification_practice/pb"
@@ -11,6 +12,8 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	_ "github.com/jinzhu/gorm/dialects/mysql"
 
 	"github.com/jinzhu/gorm"
 	"github.com/spf13/cobra"
@@ -32,13 +35,19 @@ var serverCmd = &cobra.Command{
 func serverProc(cmd *cobra.Command, args []string) {
 
 	log.Debugf("redis：%#v\n", viper.GetStringMap("server"))
-	cfg := viper.GetStringMapString(cmd.Use)
+
+	var cfg notice.Config
+
+	if err := viper.Unmarshal(&cfg); err != nil {
+		fmt.Printf("%s service Unmarshal configuration is failed, err: %s", cmd.Use, err.Error())
+		return
+	}
 
 	log.Debug("Start serverProc")
 	//ctx, cancel := context.WithCancel(context.Background())
 	//defer cancel()
 
-	db, err := gorm.Open("mysql", cfg["mysql"])
+	db, err := gorm.Open("mysql", cfg.Server.MySQL)
 	if err != nil {
 		fmt.Printf("init mysql failed, err: %s", err)
 		return
@@ -58,13 +67,13 @@ func serverProc(cmd *cobra.Command, args []string) {
 
 	defer gs.GracefulStop()
 
-	mqCli := mq.NewMq(cfg["rabbitmq"])
+	mqCli := mq.NewMq(cfg.Server.RabbitMQ)
 	if e := mqCli.InitConnection(); e != nil {
 		log.Error("InitConnection failed, err: ", e)
 	}
 	defer mqCli.Close()
 
-	if e := mqCli.InitProducer(cfg["mqexchange"], cfg["mqroutingkey"]); e != nil {
+	if e := mqCli.InitProducer(cfg.Server.Producer.Exchange, cfg.Server.Producer.RoutingKey); e != nil {
 		log.Error("InitProducer failed, err: ", e)
 	}
 

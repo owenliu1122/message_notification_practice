@@ -11,12 +11,12 @@ import (
 )
 
 // NewMailSenderService return a mail sender service.
-func NewMailSenderService(cfg map[string]string) *MailSenderService {
+func NewMailSenderService(cfg notice.SendService) *MailSenderService {
 	//cfg := toolCfg.(map[string]string)
 
-	domain, _ := b64.StdEncoding.DecodeString(cfg["domain"])
-	privateapikey, _ := b64.StdEncoding.DecodeString(cfg["privateapikey"])
-	publicapikey, _ := b64.StdEncoding.DecodeString(cfg["publicapikey"])
+	domain, _ := b64.StdEncoding.DecodeString(cfg.Domain)
+	privateapikey, _ := b64.StdEncoding.DecodeString(cfg.PrivateAPIKey)
+	publicapikey, _ := b64.StdEncoding.DecodeString(cfg.PublicAPIKey)
 
 	log.Info("mailgun domain: ", string(domain))
 	log.Info("mailgun apikey: ", string(privateapikey))

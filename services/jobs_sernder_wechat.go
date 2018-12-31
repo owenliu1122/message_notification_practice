@@ -7,7 +7,7 @@ import (
 )
 
 // NewWeChatSenderService return a wechat sender service.
-func NewWeChatSenderService(toolCfg map[string]string) *WeChatSenderService {
+func NewWeChatSenderService(toolCfg notice.SendService) *WeChatSenderService {
 	return &WeChatSenderService{}
 }
 

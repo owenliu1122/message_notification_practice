@@ -6,14 +6,14 @@ import (
 )
 
 // NewSenderService return target channel service interface.
-func NewSenderService(msgType string, sendToolCfg map[string]string) SenderService {
+func NewSenderService(msgType string, sendToolCfg notice.SendService) SenderService {
 
 	switch msgType {
-	case MsgTypeWeChat:
+	case NoticeTypeWeChat:
 		return NewWeChatSenderService(sendToolCfg)
-	case MsgTypeMail:
+	case NoticeTypeMail:
 		return NewMailSenderService(sendToolCfg)
-	case MsgTypePhone:
+	case NoticeTypePhone:
 		return NewPhoneSenderService(sendToolCfg)
 	default:
 		panic(fmt.Sprintf("Unknown MsgType: %s", msgType))

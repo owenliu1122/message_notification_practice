@@ -7,7 +7,7 @@ import (
 )
 
 // NewPhoneSenderService return a mail sender service.
-func NewPhoneSenderService(toolCfg map[string]string) *PhoneSenderService {
+func NewPhoneSenderService(toolCfg notice.SendService) *PhoneSenderService {
 	return &PhoneSenderService{}
 }
 

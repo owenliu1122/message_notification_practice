@@ -1,24 +1,23 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"message_notification_practice"
+	"message_notification_practice/controllers"
+	"message_notification_practice/mq"
 	"message_notification_practice/redis"
 	"message_notification_practice/services"
-
-	"github.com/spf13/viper"
-
-	"context"
-	"message_notification_practice/controllers"
-
-	"github.com/jinzhu/gorm"
-	"github.com/spf13/cobra"
-	log "gopkg.in/cihub/seelog.v2"
-	//"message_notification_practice/model"
-	"message_notification_practice/mq"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/mysql"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	log "gopkg.in/cihub/seelog.v2"
 )
 
 var (
@@ -43,21 +42,20 @@ func notificationProc(cmd *cobra.Command, args []string) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	cfg := viper.GetStringMapString(cmd.Use)
-	cfgCM := viper.Sub(cmd.Use).GetStringMapString("consumer")
-	cfgPCMap := viper.Sub(cmd.Use).GetStringMap("producer")
+	var cfg notice.Config
 
-	log.Debugf("notification CFG: -->  %#v\n", cfg)
-	log.Debugf("notification cfgCM: -->  %#v\n", cfgCM)
-	log.Debugf("notification cfgPCMap: -->  %#v\n", cfgPCMap)
+	if err := viper.Unmarshal(&cfg); err != nil {
+		fmt.Printf("%s service Unmarshal configuration is failed, err: %s", cmd.Use, err.Error())
+		return
+	}
 
-	cache, err := redis.NewRedisCli(cfg["redis"], json.Marshal, json.Unmarshal)
+	cache, err := redis.NewRedisCli(cfg.Notification.Redis, json.Marshal, json.Unmarshal)
 	if err != nil {
 		fmt.Printf("init redis failed, err: %s", err)
 		return
 	}
 
-	db, err := gorm.Open("mysql", cfg["mysql"])
+	db, err := gorm.Open("mysql", cfg.Notification.MySQL)
 	if err != nil {
 		fmt.Printf("init mysql failed, err: %s", err)
 		return
@@ -65,7 +63,7 @@ func notificationProc(cmd *cobra.Command, args []string) {
 
 	defer db.Close()
 
-	mqCli := mq.NewMq(cfg["rabbitmq"])
+	mqCli := mq.NewMq(cfg.Notification.RabbitMQ)
 	if e := mqCli.InitConnection(); e != nil {
 		log.Error("InitConnection failed, err: ", e)
 	}
@@ -77,11 +75,11 @@ func notificationProc(cmd *cobra.Command, args []string) {
 
 	mqSendSvc := services.NewMqSendService(mqCli, services.NewGroupUserRelationService(db, cache))
 
-	for k, v := range cfgPCMap {
+	for k, v := range cfg.Notification.Producer {
 		log.Debugf("k: %s, v: %#v\n", k, v)
 		mqSendSvc.RegisterExchangeRouting(k, mq.BaseProducer{
-			Exchange:   v.(map[string]interface{})["mqexchange"].(string),
-			RoutingKey: v.(map[string]interface{})["mqroutingkey"].(string),
+			Exchange:   v.Exchange,
+			RoutingKey: v.RoutingKey,
 		})
 	}
 
@@ -93,7 +91,7 @@ func notificationProc(cmd *cobra.Command, args []string) {
 			fmt.Sprintf("notification[%d]", i),
 			ctl.Handler,
 			mq.BaseConsumer{
-				Queue:   cfgCM["queue"],
+				Queue:   cfg.Notification.Consumer.Queue,
 				AutoAck: true,
 			})
 	}
@@ -121,18 +119,21 @@ func senderProc(cmd *cobra.Command, args []string) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	cfg := viper.GetStringMapString(cmd.Use)
-	cfgCM := viper.Sub(cmd.Use).Sub(jobsCmdType).GetStringMapString("consumer")
-	cfgSendSvc := viper.Sub(cmd.Use).Sub(jobsCmdType).GetStringMapString("sendsvc")
+	var cfg notice.Config
 
-	mqCli := mq.NewMq(cfg["rabbitmq"])
+	if err := viper.Unmarshal(&cfg); err != nil {
+		fmt.Printf("%s service Unmarshal configuration is failed, err: %s", cmd.Use, err.Error())
+		return
+	}
+
+	mqCli := mq.NewMq(cfg.Sender.RabbitMQ)
 	if e := mqCli.InitConnection(); e != nil {
 		log.Error("InitConnection failed, err: ", e)
 	}
 	defer mqCli.Close()
 
 	// TODO: 需要使用统一的接口，这里暂时时候 mail 接口测试
-	sendSvc := services.NewSenderService(jobsCmdType, cfgSendSvc)
+	sendSvc := services.NewSenderService(jobsCmdType, cfg.Sender.SendService)
 	ctl := controllers.NewSenderController(sendSvc)
 
 	for i := 0; i < jobsCmdNum; i++ {
@@ -141,7 +142,7 @@ func senderProc(cmd *cobra.Command, args []string) {
 			fmt.Sprintf("notification[%d]", i),
 			ctl.Handler,
 			mq.BaseConsumer{
-				Queue:   cfgCM["queue"],
+				Queue:   cfg.Sender.Consumer[jobsCmdType].Queue,
 				AutoAck: true,
 			})
 	}

@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"message_notification_practice"
 	"message_notification_practice/controllers"
 	"message_notification_practice/redis"
 	"message_notification_practice/services"
@@ -11,6 +12,7 @@ import (
 	"syscall"
 
 	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/spf13/cobra"
@@ -25,15 +27,21 @@ var dashboardCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 
 		log.Debug("Start serverProc")
-		cfg := viper.GetStringMapString(cmd.Use)
 
-		cache, err := redis.NewRedisCli(cfg["redis"], json.Marshal, json.Unmarshal)
+		var cfg notice.Config
+
+		if err := viper.Unmarshal(&cfg); err != nil {
+			fmt.Printf("%s service unmarshal configuration is failed, err: %s", cmd.Use, err.Error())
+			return
+		}
+
+		cache, err := redis.NewRedisCli(cfg.Dashboard.Redis, json.Marshal, json.Unmarshal)
 		if err != nil {
 			fmt.Printf("init redis failed, err: %s", err)
 			return
 		}
 
-		db, err := gorm.Open("mysql", cfg["mysql"])
+		db, err := gorm.Open("mysql", cfg.Dashboard.MySQL)
 
 		if err != nil {
 			fmt.Printf("init mysql failed, err: %s", err)
