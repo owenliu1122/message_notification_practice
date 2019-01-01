@@ -47,13 +47,13 @@ func (svc *MailSenderService) Handler(msg *notice.UserMessage) error {
 
 		//return errors.New("sender handler happens error")
 
-		resp, id, err := svc.mg.Send(svc.mg.NewMessage(
+		_, _, err := svc.mg.Send(svc.mg.NewMessage(
 			"aaa <83214742@qq.com>",
 			"Hello",
 			msg.Content,
 			msg.Destination,
 		))
-		log.Debugf("Handler():resp: %s, id: %s, msg: %#v", resp, id, msg)
+		//log.Debugf("Handler():resp: %s, id: %s, msg: %#v", resp, id, msg)
 
 		return err
 

@@ -68,6 +68,8 @@ func (svc *MqSendService) Send(record *pb.MsgNotificationRequest) error {
 
 			strType := noticeType.String()
 
+			userMsg.NoticeType = strType
+
 			switch strType {
 			case NoticeTypeMail:
 				userMsg.Destination = user.Email
