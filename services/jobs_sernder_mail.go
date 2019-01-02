@@ -2,7 +2,6 @@ package services
 
 import (
 	b64 "encoding/base64"
-	"message_notification_practice"
 	"time"
 
 	"github.com/eapache/go-resiliency/retrier"
@@ -40,7 +39,7 @@ type MailSenderService struct {
 func (svc *MailSenderService) Handler(msg *notice.UserMessage) error {
 
 	log.Debugf("MailSenderService: userMsg: %#v\n", msg)
-
+	return nil
 	r := retrier.New(retrier.ExponentialBackoff(5, 20*time.Millisecond), nil)
 
 	err := r.Run(func() error {

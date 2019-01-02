@@ -1,8 +1,8 @@
 package controllers
 
 import (
-	"message_notification_practice/pb"
-	"message_notification_practice/services"
+	"github.com/owenliu1122/message_notification_practice/pb"
+	"github.com/owenliu1122/message_notification_practice/services"
 
 	"golang.org/x/net/context"
 	log "gopkg.in/cihub/seelog.v2"

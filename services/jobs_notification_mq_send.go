@@ -3,9 +3,9 @@ package services
 import (
 	"encoding/json"
 	"fmt"
-	"message_notification_practice"
-	"message_notification_practice/mq"
-	"message_notification_practice/pb"
+
+	"github.com/owenliu1122/message_notification_practice/mq"
+	"github.com/owenliu1122/message_notification_practice/pb"
 
 	log "gopkg.in/cihub/seelog.v2"
 )

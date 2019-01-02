@@ -2,7 +2,6 @@ package services
 
 import (
 	"fmt"
-	"message_notification_practice"
 )
 
 // NewSenderService return target channel service interface.

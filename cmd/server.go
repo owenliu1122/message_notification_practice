@@ -2,16 +2,16 @@ package cmd
 
 import (
 	"fmt"
-	"message_notification_practice"
-	"message_notification_practice/controllers"
-	"message_notification_practice/mq"
-	"message_notification_practice/pb"
-	"message_notification_practice/services"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/owenliu1122/message_notification_practice/controllers"
+	"github.com/owenliu1122/message_notification_practice/mq"
+	"github.com/owenliu1122/message_notification_practice/pb"
+	"github.com/owenliu1122/message_notification_practice/services"
 
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 

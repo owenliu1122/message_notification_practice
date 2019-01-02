@@ -1,8 +1,6 @@
 package services
 
 import (
-	"message_notification_practice"
-
 	"github.com/jinzhu/gorm"
 )
 

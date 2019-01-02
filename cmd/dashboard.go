@@ -3,13 +3,13 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"message_notification_practice"
-	"message_notification_practice/controllers"
-	"message_notification_practice/redis"
-	"message_notification_practice/services"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/owenliu1122/message_notification_practice/controllers"
+	"github.com/owenliu1122/message_notification_practice/redis"
+	"github.com/owenliu1122/message_notification_practice/services"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"

@@ -1,9 +1,9 @@
 package controllers
 
 import (
-	"message_notification_practice"
-	"message_notification_practice/services"
 	"net/http"
+
+	"github.com/owenliu1122/message_notification_practice/services"
 
 	"github.com/labstack/echo"
 	"github.com/labstack/gommon/log"

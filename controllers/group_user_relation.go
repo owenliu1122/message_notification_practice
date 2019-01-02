@@ -2,10 +2,11 @@ package controllers
 
 import (
 	//"database/sql/driver"
-	"message_notification_practice"
-	"message_notification_practice/services"
+
 	"net/http"
 	"strconv"
+
+	"github.com/owenliu1122/message_notification_practice/services"
 
 	"github.com/labstack/echo"
 	log "gopkg.in/cihub/seelog.v2"

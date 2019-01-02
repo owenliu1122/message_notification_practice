@@ -1,8 +1,7 @@
 package services
 
 import (
-	"message_notification_practice"
-	"message_notification_practice/redis"
+	"github.com/owenliu1122/message_notification_practice/redis"
 
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/gommon/log"

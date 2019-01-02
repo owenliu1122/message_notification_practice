@@ -2,8 +2,8 @@ package services
 
 import (
 	"fmt"
-	"message_notification_practice"
-	"message_notification_practice/redis"
+	"github.com/owenliu1122/message_notification_practice"
+	"github.com/owenliu1122/message_notification_practice/redis"
 
 	"github.com/jinzhu/gorm"
 	log "gopkg.in/cihub/seelog.v2"

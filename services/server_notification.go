@@ -2,10 +2,10 @@ package services
 
 import (
 	"encoding/json"
-	"message_notification_practice"
-	"message_notification_practice/mq"
-	"message_notification_practice/pb"
 	"strings"
+
+	"github.com/owenliu1122/message_notification_practice/mq"
+	"github.com/owenliu1122/message_notification_practice/pb"
 
 	"github.com/jinzhu/gorm"
 )
