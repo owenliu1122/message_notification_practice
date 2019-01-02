@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 
+	"github.com/owenliu1122/notice"
 	"github.com/owenliu1122/notice/services"
 
 	"github.com/labstack/echo"

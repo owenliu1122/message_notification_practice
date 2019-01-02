@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/eapache/go-resiliency/retrier"
+	"github.com/owenliu1122/notice"
 	log "gopkg.in/cihub/seelog.v2"
 	"gopkg.in/mailgun/mailgun-go.v1"
 )

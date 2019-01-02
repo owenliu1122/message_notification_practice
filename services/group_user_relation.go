@@ -2,7 +2,7 @@ package services
 
 import (
 	"fmt"
-	"message_notification_practice"
+	"github.com/owenliu1122/notice"
 
 	"github.com/owenliu1122/notice/redis"
 

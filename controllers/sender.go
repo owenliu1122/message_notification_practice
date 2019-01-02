@@ -7,6 +7,7 @@ import (
 	"github.com/streadway/amqp"
 	log "gopkg.in/cihub/seelog.v2"
 
+	"github.com/owenliu1122/notice"
 	"github.com/owenliu1122/notice/services"
 )
 

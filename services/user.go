@@ -1,6 +1,7 @@
 package services
 
 import (
+	"github.com/owenliu1122/notice"
 	"github.com/owenliu1122/notice/redis"
 
 	"github.com/jinzhu/gorm"

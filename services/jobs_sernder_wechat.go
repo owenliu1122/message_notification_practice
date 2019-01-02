@@ -1,6 +1,7 @@
 package services
 
 import (
+	"github.com/owenliu1122/notice"
 	log "gopkg.in/cihub/seelog.v2"
 )
 

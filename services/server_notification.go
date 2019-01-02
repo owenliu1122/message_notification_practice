@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"strings"
 
+	"github.com/owenliu1122/notice"
 	"github.com/owenliu1122/notice/mq"
 	"github.com/owenliu1122/notice/pb"
 

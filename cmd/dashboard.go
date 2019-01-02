@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/owenliu1122/notice"
 	"github.com/owenliu1122/notice/controllers"
 	"github.com/owenliu1122/notice/redis"
 	"github.com/owenliu1122/notice/services"

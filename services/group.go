@@ -2,6 +2,7 @@ package services
 
 import (
 	"github.com/jinzhu/gorm"
+	"github.com/owenliu1122/notice"
 )
 
 // NewGroupService returns group record operation service.
