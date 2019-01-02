@@ -8,10 +8,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/owenliu1122/message_notification_practice/controllers"
-	"github.com/owenliu1122/message_notification_practice/mq"
-	"github.com/owenliu1122/message_notification_practice/redis"
-	"github.com/owenliu1122/message_notification_practice/services"
+	"github.com/owenliu1122/notice/controllers"
+	"github.com/owenliu1122/notice/mq"
+	"github.com/owenliu1122/notice/redis"
+	"github.com/owenliu1122/notice/services"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"

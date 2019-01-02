@@ -3,8 +3,8 @@ package controllers
 import (
 	"encoding/json"
 
-	"github.com/owenliu1122/message_notification_practice/pb"
-	"github.com/owenliu1122/message_notification_practice/services"
+	"github.com/owenliu1122/notice/pb"
+	"github.com/owenliu1122/notice/services"
 
 	"github.com/streadway/amqp"
 	"golang.org/x/net/context"

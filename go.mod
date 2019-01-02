@@ -1,4 +1,4 @@
-module message_notification_practice
+module notice
 
 require (
 	cloud.google.com/go v0.34.0 // indirect

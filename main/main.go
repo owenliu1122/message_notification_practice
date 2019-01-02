@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/owenliu1122/message_notification_practice/cmd"
+	"github.com/owenliu1122/notice/cmd"
 )
 
 func main() {

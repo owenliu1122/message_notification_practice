@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/owenliu1122/message_notification_practice/mq"
-	"github.com/owenliu1122/message_notification_practice/pb"
+	"github.com/owenliu1122/notice/mq"
+	"github.com/owenliu1122/notice/pb"
 
 	"github.com/jinzhu/gorm"
 )

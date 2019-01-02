@@ -7,7 +7,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/owenliu1122/message_notification_practice/pb"
+	"github.com/owenliu1122/notice/pb"
 
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"

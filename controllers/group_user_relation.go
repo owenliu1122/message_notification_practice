@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/owenliu1122/message_notification_practice/services"
+	"github.com/owenliu1122/notice/services"
 
 	"github.com/labstack/echo"
 	log "gopkg.in/cihub/seelog.v2"

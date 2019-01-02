@@ -7,7 +7,7 @@ import (
 	"github.com/streadway/amqp"
 	log "gopkg.in/cihub/seelog.v2"
 
-	"github.com/owenliu1122/message_notification_practice/services"
+	"github.com/owenliu1122/notice/services"
 )
 
 // SenderController is a sender notification controller
