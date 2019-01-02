@@ -1,4 +1,4 @@
-module notice
+module github.com/owenliu1122/notice
 
 require (
 	cloud.google.com/go v0.34.0 // indirect
