@@ -60,44 +60,41 @@ func notificationProc(cmd *cobra.Command, args []string) {
 		fmt.Printf("init mysql failed, err: %s", err)
 		return
 	}
-
 	defer db.Close()
 
-	mqCli := mq.NewMq(cfg.Notification.RabbitMQ)
-	if e := mqCli.InitConnection(); e != nil {
-		log.Error("InitConnection failed, err: ", e)
+	mqConnection, err := mq.NewConnection(cfg.Notification.RabbitMQ)
+	if err != nil {
+		log.Error("new rabbitmq connection failed, err: ", err)
+		return
 	}
-	defer mqCli.Close()
+	defer mqConnection.Close()
 
-	if e := mqCli.InitProducer("", ""); e != nil {
-		log.Errorf("InitProducer failed, err: %s\n", e.Error())
+	producer, err := mq.NewProducer("jobs notification producer", mqConnection)
+	if err != nil {
+		log.Error("create producer failed, err: ", err)
 	}
+	defer producer.Close()
 
-	mqSendSvc := services.NewMqSendService(mqCli, services.NewGroupUserRelationService(db, cache))
-
-	for k, v := range cfg.Notification.Producer {
-		log.Debugf("k: %s, v: %#v\n", k, v)
-		mqSendSvc.RegisterExchangeRouting(k, mq.BaseProducer{
-			Exchange:   v.Exchange,
-			RoutingKey: v.RoutingKey,
-		})
-	}
+	mqSendSvc := services.NewMqSendService(producer, services.NewGroupUserRelationService(db, cache), cfg.Notification.Producer)
 
 	ctl := controllers.NewNotificationController(mqSendSvc)
 
-	for i := 0; i < jobsCmdNum; i++ {
+	consumer, err := mq.NewConsumer(ctx,
+		"jobs notification consumer",
+		cfg.Notification.Consumer.Queue,
+		mqConnection,
+		jobsCmdNum,
+		true,
+		ctl.Handler)
 
-		mqCli.RegisterConsumer(
-			fmt.Sprintf("notification[%d]", i),
-			ctl.Handler,
-			mq.BaseConsumer{
-				Queue:   cfg.Notification.Consumer.Queue,
-				AutoAck: true,
-			})
+	if err != nil {
+		log.Error("create consumer failed, err: ", err)
+		return
 	}
+	defer consumer.Close()
 
-	if e := mqCli.StartConsumer(ctx); e != nil {
-		log.Error("InitConnection failed, err: ", e)
+	if e := consumer.Start(); e != nil {
+		log.Error("start consumer failed, err: ", e)
 	}
 
 	quit := make(chan os.Signal, 1)
@@ -118,6 +115,7 @@ func senderProc(cmd *cobra.Command, args []string) {
 	log.Debug("Start Jobs Sender!")
 
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	var cfg notice.Config
 
@@ -126,36 +124,37 @@ func senderProc(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	mqCli := mq.NewMq(cfg.Sender.RabbitMQ)
-	if e := mqCli.InitConnection(); e != nil {
-		log.Error("InitConnection failed, err: ", e)
+	mqConnection, err := mq.NewConnection(cfg.Sender.RabbitMQ)
+	if err != nil {
+		log.Error("new rabbitmq connection failed, err: ", err)
+		return
 	}
-	defer mqCli.Close()
+	defer mqConnection.Close()
 
 	// TODO: 需要使用统一的接口，这里暂时时候 mail 接口测试
 	sendSvc := services.NewSenderService(jobsCmdType, cfg.Sender.SendService)
 	ctl := controllers.NewSenderController(sendSvc)
 
-	for i := 0; i < jobsCmdNum; i++ {
+	consumer, err := mq.NewConsumer(ctx,
+		"jobs sender consumer",
+		cfg.Sender.Consumer[jobsCmdType].Queue,
+		mqConnection,
+		jobsCmdNum,
+		true,
+		ctl.Handler)
 
-		mqCli.RegisterConsumer(
-			fmt.Sprintf("notification[%d]", i),
-			ctl.Handler,
-			mq.BaseConsumer{
-				Queue:   cfg.Sender.Consumer[jobsCmdType].Queue,
-				AutoAck: true,
-			})
+	if err != nil {
+		log.Error("create consumer failed, err: ", err)
 	}
+	defer consumer.Close()
 
-	if e := mqCli.StartConsumer(ctx); e != nil {
-		log.Error("InitConnection failed, err: ", e)
+	if e := consumer.Start(); e != nil {
+		log.Error("start consumer failed, err: ", e)
 	}
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 	<-quit
-
-	cancel()
 
 	log.Debug("Exit Jobs Sender!")
 }

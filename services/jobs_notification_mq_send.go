@@ -19,27 +19,20 @@ const (
 
 // MqSendService is mq send service.
 type MqSendService struct {
-	mq        *mq.BaseMq
+	pc        *mq.Producer
 	gurSvc    *GroupUserRelationService
-	exRouting map[string]*mq.BaseProducer
+	exRouting map[string]notice.Producer
 }
 
 // NewMqSendService returns a mq send service.
-func NewMqSendService(mq *mq.BaseMq, gurSvc *GroupUserRelationService) *MqSendService {
+func NewMqSendService(pc *mq.Producer, gurSvc *GroupUserRelationService, exRouting map[string]notice.Producer) *MqSendService {
 	svc := MqSendService{
-		mq:     mq,
+		pc:     pc,
 		gurSvc: gurSvc,
 	}
-
+	svc.exRouting = make(map[string]notice.Producer)
+	svc.exRouting = exRouting
 	return &svc
-}
-
-// RegisterExchangeRouting regist exchange and routingkey.
-func (svc *MqSendService) RegisterExchangeRouting(tp string, exRouting mq.BaseProducer) {
-	if svc.exRouting == nil {
-		svc.exRouting = make(map[string]*mq.BaseProducer)
-	}
-	svc.exRouting[tp] = &exRouting
 }
 
 // Send parse send a record to  exchange and routingkey.
@@ -91,7 +84,7 @@ func (svc *MqSendService) Send(record *pb.MsgNotificationRequest) error {
 				return fmt.Errorf("email marshal UserMsg failed, err: %s", e)
 			}
 
-			if err = svc.mq.Send(producerCfg.Exchange, producerCfg.RoutingKey, body); err != nil {
+			if err = svc.pc.Publish(producerCfg.Exchange, producerCfg.RoutingKey, body); err != nil {
 				return err
 			}
 		}

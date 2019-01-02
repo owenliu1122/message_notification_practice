@@ -2,88 +2,91 @@ package mq
 
 import (
 	"errors"
-	"fmt"
+
 	"github.com/streadway/amqp"
 	log "gopkg.in/cihub/seelog.v2"
 )
 
-/*
-Producer
-*/
+// Producer is a producer client.
+type Producer struct {
+	Name string
+	//Exchange   string
+	//RoutingKey string
+	//Mandatory  bool
+	//Immediate  bool
 
-type BaseProducer struct {
-	Exchange   string
-	RoutingKey string
-	Mandatory  bool
-	Immediate  bool
+	Connection  *Connection
+	Channel     *amqp.Channel
+	isConnected bool
 }
 
-type ProducerContext struct {
-	//ChannelKey		string
-	BaseProducer
-	Channel *amqp.Channel
-}
-
-func (mq *BaseMq) InitProducer(exchange, routingKey string) error {
-	mq.pc = &ProducerContext{
-		BaseProducer: BaseProducer{
-			Exchange:   exchange,
-			RoutingKey: routingKey,
-		},
-	}
-
-	return nil
-}
-
-func (mq *BaseMq) refreshProducerChannel() error {
+// NewProducer return a producer client.
+func NewProducer(name string, baseConn *Connection) (*Producer, error) {
 	var err error
-
-	err = mq.refreshMqConnection()
-	if err != nil {
-		return errors.New(fmt.Sprintf("refreshMqConnection failed, err: %s", err.Error()))
+	producer := &Producer{
+		Name:       name,
+		Connection: baseConn,
 	}
-
-	mq.pc.Channel, err = mq.conn.Connection.Channel()
-
-	return err
+	err = producer.connect()
+	return producer, err
 }
 
-func (mq *BaseMq) Send(exchange, routingKey string, body []byte) error {
+func (pc *Producer) connect() (err error) {
 
-	if mq.pc == nil {
+	var ch *amqp.Channel
+	ch, err = pc.Connection.Channel()
+	if err != nil {
+		return
+	}
+
+	if err = ch.Confirm(false); err != nil {
+		return
+	}
+
+	pc.Channel = ch
+	pc.isConnected = true
+
+	return
+}
+
+// Publish a message.
+func (pc *Producer) Publish(exchange, routingKey string, body []byte) error {
+
+	if !pc.isConnected {
 		return errors.New("MQ producer has not been initialized")
 	}
 
-	if err := mq.refreshProducerChannel(); err != nil {
-		return errors.New(fmt.Sprintf("refreshProducerChannel failed, err: %s", err.Error()))
+	if err := pc.Channel.ExchangeDeclare(exchange,
+		"direct",
+		true,
+		false,
+		false,
+		false,
+		nil); err != nil {
+		return err
 	}
 
-	if "" != exchange {
-		mq.pc.Exchange = exchange
-	}
-
-	if "" != routingKey {
-		mq.pc.RoutingKey = routingKey
-	}
-
-	return mq.pc.Channel.Publish(mq.pc.Exchange,
-		mq.pc.RoutingKey,
-		mq.pc.Mandatory,
-		mq.pc.Immediate,
+	return pc.Channel.Publish(exchange,
+		routingKey,
+		false,
+		false,
 		amqp.Publishing{
 			ContentType: "text/plain",
 			Body:        body,
 		})
 }
 
-func (mq *BaseMq) closeProducer() error {
+// Close a producer client.
+func (pc *Producer) Close() error {
 	var err error
-	// 关闭生产者 Channel
-	if mq.pc != nil && mq.pc.Channel != nil {
-		err = mq.pc.Channel.Close()
-		if err != nil {
-			log.Error("close producer failed, err: ", err)
-		}
+
+	if !pc.isConnected {
+		return errors.New("mq producer have not been init")
+	}
+
+	err = pc.Channel.Close()
+	if err != nil {
+		return log.Error("close producer(%s) failed, err: ", err)
 	}
 
 	return err

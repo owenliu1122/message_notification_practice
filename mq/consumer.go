@@ -1,91 +1,128 @@
 package mq
 
+import "C"
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/streadway/amqp"
 	log "gopkg.in/cihub/seelog.v2"
 )
 
-/*
-Consumer
-*/
+// HandlerFunc is a function that handles message callbacks
 type HandlerFunc func(context.Context, *amqp.Delivery)
 
-type BaseConsumer struct {
-	Queue   string
-	AutoAck bool
-	NoLocal bool
-	//NoAck			bool
-	Exclusive bool
-	NoWait    bool
-	Arguments amqp.Table
+// Consumer is RabbitMQ consumer
+type Consumer struct {
+	Ctx         context.Context
+	Name        string
+	Parallelism int
+	Handler     HandlerFunc
+	Queue       string
+	AutoAck     bool
+
+	Connection  *Connection
+	Channels    []*amqp.Channel
+	isConnected bool
 }
 
-type ConsumerContext struct {
-	ChannelKey string
-	Channel    *amqp.Channel
-	Handler    HandlerFunc
-	BaseConsumer
-}
+// NewConsumer return a consumer client.
+func NewConsumer(ctx context.Context, name, queue string, baseConn *Connection, parallelism int, autoAct bool, handler HandlerFunc) (*Consumer, error) {
 
-func (mq *BaseMq) RegisterConsumer(name string, handler HandlerFunc, baseCm BaseConsumer) error {
-
-	if mq.cm == nil {
-		mq.cm = make(map[string]*ConsumerContext)
+	consumer := &Consumer{
+		Ctx:         ctx,
+		Connection:  baseConn,
+		Name:        name,
+		Channels:    make([]*amqp.Channel, 0, parallelism),
+		Parallelism: parallelism,
+		Handler:     handler,
+		Queue:       queue,
+		AutoAck:     autoAct,
 	}
 
-	mq.cm[name] = &ConsumerContext{
-		ChannelKey:   name,
-		Handler:      handler,
-		BaseConsumer: baseCm,
-	}
+	err := consumer.connect()
 
-	return nil
+	return consumer, err
 }
 
-func (mq *BaseMq) closeConsumer() error {
+func (cm *Consumer) connect() (err error) {
+
+	var i = 0
+
+	defer func() {
+		if err != nil {
+			for ; i > 0; i-- {
+				cm.Channels[i-1].Close()
+			}
+		}
+	}()
+
+	for ; i < cm.Parallelism; i++ {
+		var ch *amqp.Channel
+		ch, err = cm.Connection.Channel()
+		if err != nil {
+			return
+		}
+
+		if err = ch.Confirm(false); err != nil {
+			return
+		}
+
+		if _, err = ch.QueueDeclare(
+			cm.Queue,
+			true,
+			false,
+			false,
+			false,
+			nil,
+		); err != nil {
+			return
+		}
+
+		cm.Channels = append(cm.Channels, ch)
+	}
+
+	cm.isConnected = true
+
+	return
+}
+
+// Close a consumer client.
+func (cm *Consumer) Close() error {
 	var err error
 
-	if mq.cm == nil || len(mq.cm) == 0 {
+	if !cm.isConnected {
 		return errors.New("mq consumer have not been init")
 	}
 
-	for k, v := range mq.cm {
-		err = v.Channel.Close()
+	for _, v := range cm.Channels {
+		err = v.Close()
 		if err != nil {
-			log.Error("close consumer(%s) failed, err: ", k, err)
+			log.Error("close consumer(%s) failed, err: ", err)
 		}
 	}
 
 	return err
 }
 
-func (mq *BaseMq) consumerProc(name string, ctx context.Context, cmCtx *ConsumerContext) {
+func (cm *Consumer) consumerProc(ctx context.Context, name string, channel *amqp.Channel) {
 	var err error
 
-	if mq.conn == nil {
-		if err := mq.refreshMqConnection(); err != nil {
-			log.Error("consumerProc refresh connection failed, err: ", err)
-			return
-		}
-	}
-
-	if mq.cm[name].Channel, err = mq.conn.Connection.Channel(); err != nil {
-		log.Error("consumerProc failed to open a channel, err: ", err)
+	if !cm.isConnected {
+		log.Error("consumer have not been init")
 		return
 	}
 
 	var msgs <-chan amqp.Delivery
 
-	if msgs, err = mq.cm[name].Channel.Consume(mq.cm[name].Queue,
+	if msgs, err = channel.Consume(cm.Queue,
 		"",
-		mq.cm[name].AutoAck,
-		mq.cm[name].Exclusive,
-		mq.cm[name].NoLocal,
-		mq.cm[name].NoWait,
-		mq.cm[name].Arguments); err != nil {
+		cm.AutoAck,
+		false,
+		false,
+		false,
+		nil); err != nil {
 
 		log.Error("consumerProc failed to open a Consume, err: ", err)
 		return
@@ -96,7 +133,7 @@ func (mq *BaseMq) consumerProc(name string, ctx context.Context, cmCtx *Consumer
 		case msg, ok := <-msgs:
 			if ok {
 				log.Debugf("consumer id: %s\n", name)
-				mq.cm[name].Handler(ctx, &msg)
+				cm.Handler(ctx, &msg)
 			}
 		case <-ctx.Done():
 			log.Debug(name, "监控退出，停止了...")
@@ -105,17 +142,16 @@ func (mq *BaseMq) consumerProc(name string, ctx context.Context, cmCtx *Consumer
 	}
 }
 
-func (mq *BaseMq) StartConsumer(ctx context.Context) error {
+// Start all goroutines on the consumer client
+func (cm *Consumer) Start() error {
 
-	var err error
-
-	if mq.cm == nil || len(mq.cm) == 0 {
-		return err
+	if !cm.isConnected {
+		return log.Error("have not connection")
 	}
 
-	for k, v := range mq.cm {
-		go mq.consumerProc(k, ctx, v)
+	for i := range cm.Channels {
+		go cm.consumerProc(cm.Ctx, fmt.Sprintf("%s gorouine [%d]", cm.Name, i), cm.Channels[i])
 	}
 
-	return err
+	return nil
 }

@@ -67,17 +67,26 @@ func serverProc(cmd *cobra.Command, args []string) {
 
 	defer gs.GracefulStop()
 
-	mqCli := mq.NewMq(cfg.Server.RabbitMQ)
-	if e := mqCli.InitConnection(); e != nil {
-		log.Error("InitConnection failed, err: ", e)
+	mqConnection, err := mq.NewConnection(cfg.Server.RabbitMQ)
+	if err != nil {
+		log.Error("new rabbitmq connection failed, err: ", err)
+		return
 	}
-	defer mqCli.Close()
+	defer mqConnection.Close()
 
-	if e := mqCli.InitProducer(cfg.Server.Producer.Exchange, cfg.Server.Producer.RoutingKey); e != nil {
-		log.Error("InitProducer failed, err: ", e)
+	producer, err := mq.NewProducer("server producer", mqConnection)
+	if err != nil {
+		log.Error("NewProducer failed, err: ", err)
+		return
 	}
+	defer producer.Close()
 
-	ctl := controllers.NewServerController(services.NewNotificationService(db, mqCli))
+	svc := services.NewNotificationService(db,
+		producer,
+		cfg.Server.Producer.Exchange,
+		cfg.Server.Producer.RoutingKey)
+
+	ctl := controllers.NewServerController(svc)
 	pb.RegisterMsgNotificationServer(gs, ctl)
 	go gs.Serve(lis)
 

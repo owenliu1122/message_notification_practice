@@ -11,17 +11,21 @@ import (
 )
 
 // NewNotificationService returns a notification record operation service.
-func NewNotificationService(db *gorm.DB, mq *mq.BaseMq) *NotificationService {
+func NewNotificationService(db *gorm.DB, pc *mq.Producer, exchange, routing string) *NotificationService {
 	return &NotificationService{
-		db: db,
-		mq: mq,
+		db:         db,
+		pc:         pc,
+		pcExchange: exchange,
+		pcRouting:  routing,
 	}
 }
 
 // NotificationService is a notification record operation service.
 type NotificationService struct {
-	db *gorm.DB
-	mq *mq.BaseMq
+	db         *gorm.DB
+	pc         *mq.Producer
+	pcExchange string
+	pcRouting  string
 }
 
 // Create a notification record.
@@ -47,7 +51,7 @@ func (u *NotificationService) Create(pbReq *pb.MsgNotificationRequest) error {
 		return err
 	}
 
-	err = u.mq.Send("", "", jsonBytes)
+	err = u.pc.Publish(u.pcExchange, u.pcRouting, jsonBytes)
 	if err != nil {
 		return err
 	}
