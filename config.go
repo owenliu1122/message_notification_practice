@@ -33,12 +33,14 @@ type Notification struct {
 
 // Sender is sender service processing used configuration.
 type Sender struct {
-	MySQL       string              `mapstructure:"mysql" json:"mysql" yaml:"mysql"`
-	Redis       string              `json:"redis" yaml:"redis"`
-	RabbitMQ    string              `json:"rabbitmq" yaml:"rabbitmq"`
-	SendService SendService         `json:"sendservice" yaml:"sendservice"`
-	Consumer    map[string]Consumer `json:"consumer" yaml:"consumer"`
-	Producer    map[string]Producer `json:"producer" yaml:"producer"`
+	MySQL         string              `mapstructure:"mysql" json:"mysql" yaml:"mysql"`
+	Redis         string              `json:"redis" yaml:"redis"`
+	RabbitMQ      string              `json:"rabbitmq" yaml:"rabbitmq"`
+	RetryDelay    int64               `json:"retrydelay" yaml:"retrydelay"`
+	SendService   SendService         `json:"sendservice" yaml:"sendservice"`
+	Consumer      map[string]Consumer `json:"consumer" yaml:"consumer"`
+	RetryProducer map[string]Producer `json:"retryproducer" yaml:"retryproducer"`
+	DelayProducer map[string]Producer `json:"delayproducer" yaml:"delayproducer"`
 }
 
 // SendService is sender service API configurations.

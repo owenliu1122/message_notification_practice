@@ -62,7 +62,7 @@ func (ctl *GroupController) Update(ctx echo.Context) error {
 		log.Error("update group get body failed, err: ", err)
 		return ctx.String(http.StatusBadRequest, err.Error())
 	}
-
+	// TODO: 参数检查
 	log.Infof("GroupController Update -> group: %#v\n", group)
 
 	err := ctl.svc.Update(&group)

@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/owenliu1122/notice"
 	"github.com/owenliu1122/notice/controllers"
@@ -132,8 +133,19 @@ func senderProc(cmd *cobra.Command, args []string) {
 	}
 	defer mqConnection.Close()
 
-	// TODO: 需要使用统一的接口，这里暂时时候 mail 接口测试
-	sendSvc := services.NewSenderService(jobsCmdType, cfg.Sender.SendService)
+	producer, err := mq.NewProducer("jobs sender producer", mqConnection)
+	if err != nil {
+		log.Error("create producer failed, err: ", err)
+	}
+	defer producer.Close()
+
+	producer.DeclareExpiration(cfg.Sender.RetryProducer[jobsCmdType].Exchange,
+		cfg.Sender.RetryProducer[jobsCmdType].RoutingKey,
+		cfg.Sender.DelayProducer[jobsCmdType].Exchange,
+		cfg.Sender.DelayProducer[jobsCmdType].RoutingKey,
+		time.Duration(cfg.Sender.RetryDelay)*time.Second)
+
+	sendSvc := services.NewSenderService(jobsCmdType, cfg.Sender.SendService, producer, cfg.Sender.RetryProducer[jobsCmdType])
 	ctl := controllers.NewSenderController(sendSvc)
 
 	consumer, err := mq.NewConsumer(ctx,
