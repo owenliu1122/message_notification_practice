@@ -4,8 +4,8 @@ import (
 	"github.com/owenliu1122/notice/pb"
 	"github.com/owenliu1122/notice/services"
 
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
-	log "gopkg.in/cihub/seelog.v2"
 )
 
 // ServerController is a server controller.

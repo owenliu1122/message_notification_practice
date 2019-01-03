@@ -17,11 +17,12 @@ type Group struct {
 type GroupServiceInterface interface {
 	Create(group *Group) error
 	Update(group *Group) error
-	Find(id uint) ([]Group, error)
+	List(name string, page, pageSize int) ([]Group, int, error)
+	Find(id uint) (*Group, error)
 	FindByName(name string) (*Group, error)
 	Delete(group *Group) (*Group, error)
 	AddMembers(gur []GroupUserRelation) error
 	FindMembers(id uint64) ([]User, error)
-	FindAvailableMembers(id uint64, uname string) ([]User, error)
+	FindAvailableMembers(id uint64, uname string, page, pageSize int) ([]User, int, error)
 	DeleteMembers(gur []GroupUserRelation) error
 }

@@ -3,7 +3,7 @@ package services
 import (
 	"github.com/jinzhu/gorm"
 	"github.com/owenliu1122/notice"
-	log "gopkg.in/cihub/seelog.v2"
+	log "github.com/sirupsen/logrus"
 )
 
 // NewUserService returns user record operation service.
@@ -21,52 +21,69 @@ type UserService struct {
 }
 
 // Create a user record.
-func (u *UserService) Create(user *notice.User) error {
-	return u.db.Create(user).Error
+func (svc *UserService) Create(user *notice.User) error {
+	return svc.db.Create(user).Error
 }
 
 // Update a user record.
-func (u *UserService) Update(user *notice.User) error {
-	if err := u.db.Model(user).Updates(*user).Error; err != nil {
+func (svc *UserService) Update(user *notice.User) error {
+	if err := svc.db.Model(user).Updates(*user).Error; err != nil {
 		return err
 	}
 
-	u.deleteGroupCaches(user)
+	svc.deleteGroupCaches(user)
 
 	return nil
 }
 
-// Find a user record by id.
-func (u *UserService) Find(id uint) ([]notice.User, error) {
-	var users []notice.User
+// List user list by name , page, page size.
+func (svc *UserService) List(name string, page, pageSize int) (users []notice.User, count int, err error) {
+	user := notice.User{}
+	err = svc.db.Model(&user).
+		Where("name like ?", name+"%").
+		Count(&count).
+		Order("id").
+		Offset((page - 1) * pageSize).
+		Limit(page * pageSize).
+		Find(&users).
+		Error
 
-	err := u.db.Find(&users).Error
+	return
+}
+
+// Find a user record by id.
+func (svc *UserService) Find(id uint) (*notice.User, error) {
+	var user notice.User
+
+	err := svc.db.Find(&user).Error
 	//err := u.db.Raw("select * from groups").Scan(&groups).Error
 
-	return users, err
+	return &user, err
 }
 
 // FindByName a user record by name.
-func (u *UserService) FindByName(name string) (*notice.User, error) {
+func (svc *UserService) FindByName(name string) (*notice.User, error) {
 	panic("not implemented")
 }
 
 // Delete a user record.
-func (u *UserService) Delete(user *notice.User) (*notice.User, error) {
-	if err := u.db.Delete(user).Error; err != nil {
-		return nil, err
+func (svc *UserService) Delete(user *notice.User) error {
+	if err := svc.db.Delete(user).Error; err != nil {
+		return err
 	}
 
-	u.deleteGroupCaches(user)
+	if err := svc.deleteGroupCaches(user); err != nil {
+		log.Error("delete group cahces failed, err:", err)
+	}
 
-	return user, nil
+	return nil
 }
 
-func (u *UserService) deleteGroupCaches(user *notice.User) error {
+func (svc *UserService) deleteGroupCaches(user *notice.User) error {
 	var gurs []notice.GroupUserRelation
 
-	if err := u.db.Where("user_id = ?", user.ID).Select("group_id").Find(&gurs).Error; err != nil {
-		log.Errorf("user update find belone group id failed, err: ", err)
+	if err := svc.db.Where("user_id = ?", user.ID).Select("group_id").Find(&gurs).Error; err != nil {
+		log.Errorf("user delete group id cahce failed, err: ", err)
 		return err
 	}
 
@@ -81,7 +98,7 @@ func (u *UserService) deleteGroupCaches(user *notice.User) error {
 		gurCacheKeys = append(gurCacheKeys, getGroupUsersCacheKey(one.GroupID))
 	}
 
-	if err := u.cache.Delete(gurCacheKeys...); err != nil {
+	if err := svc.cache.Delete(gurCacheKeys...); err != nil {
 		log.Error("delete related group cache failed, err: ", err)
 		return err
 	}

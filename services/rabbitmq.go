@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
-	log "gopkg.in/cihub/seelog.v2"
 )
 
 /*Connections*/
@@ -185,7 +185,7 @@ func (cm *Consumer) consumerProc(ctx context.Context, name string, channel *amqp
 func (cm *Consumer) Start() error {
 
 	if !cm.isConnected {
-		return log.Error("have not connection")
+		return errors.New("have not connection")
 	}
 
 	for i := range cm.Channels {
@@ -286,7 +286,7 @@ func (pc *Producer) DeclareExpiration(exchange, routingKey, delayExchange, delay
 		false,
 		false,
 		nil); err != nil {
-		return log.Errorf("Failed to declare a delay_exchange, err:", err)
+		return fmt.Errorf("failed to declare a delay_exchange, err: %s", err)
 	}
 
 	if err := pc.Channel.ExchangeDeclare(delayExchange,
@@ -296,7 +296,7 @@ func (pc *Producer) DeclareExpiration(exchange, routingKey, delayExchange, delay
 		false,
 		false,
 		nil); err != nil {
-		return log.Errorf("Failed to declare a delay_exchange, err:", err)
+		return fmt.Errorf("failed to declare a delay_exchange, err: %s", err)
 	}
 
 	if _, errDelay := pc.Channel.QueueDeclare(
@@ -312,7 +312,7 @@ func (pc *Producer) DeclareExpiration(exchange, routingKey, delayExchange, delay
 			"x-dead-letter-routing-key": delayRouting,
 		}, // arguments
 	); errDelay != nil {
-		return log.Errorf("Failed to declare a delay_queue, err:", errDelay)
+		return fmt.Errorf("failed to declare a delay_queue, err: %s", errDelay)
 	}
 
 	if errBind := pc.Channel.QueueBind(
@@ -321,7 +321,7 @@ func (pc *Producer) DeclareExpiration(exchange, routingKey, delayExchange, delay
 		exchange,   // exchange
 		false,
 		nil); errBind != nil {
-		return log.Errorf("Failed to bind a delay_queue, err:", errBind)
+		return fmt.Errorf("failed to bind a delay_queue, err: %s", errBind)
 	}
 
 	return nil
@@ -337,7 +337,7 @@ func (pc *Producer) Close() error {
 
 	err = pc.Channel.Close()
 	if err != nil {
-		return log.Error("close producer(%s) failed, err: ", err)
+		return fmt.Errorf("close producer failed, err: %s", err)
 	}
 
 	return err

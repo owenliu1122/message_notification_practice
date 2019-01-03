@@ -6,7 +6,7 @@ import (
 	"time"
 
 	goredis "github.com/go-redis/redis"
-	log "gopkg.in/cihub/seelog.v2"
+	log "github.com/sirupsen/logrus"
 )
 
 // MarshalFunc type is an adapter to marshal data for cache to redis.

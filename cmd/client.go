@@ -9,10 +9,10 @@ import (
 
 	"github.com/owenliu1122/notice/pb"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-	log "gopkg.in/cihub/seelog.v2"
 )
 
 var clientCmdHost string

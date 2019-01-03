@@ -32,15 +32,30 @@ func (svc *GroupService) Update(group *notice.Group) error {
 	return svc.db.Model(group).Updates(*group).Error
 }
 
+// List group list by name , page, page size.
+func (svc *GroupService) List(name string, page, pageSize int) (users []notice.Group, count int, err error) {
+	group := notice.Group{}
+	err = svc.db.Model(&group).
+		Where("name like ?", name+"%").
+		Count(&count).
+		Order("id").
+		Offset((page - 1) * pageSize).
+		Limit(page * pageSize).
+		Find(&users).
+		Error
+
+	return
+}
+
 // Find a group record by id.
-func (svc *GroupService) Find(id uint) ([]notice.Group, error) {
+func (svc *GroupService) Find(id uint) (*notice.Group, error) {
 
-	var groups []notice.Group
+	var group notice.Group
 
-	err := svc.db.Find(&groups).Error
+	err := svc.db.Find(&group).Error
 	//err := u.db.Raw("select * from groups").Scan(&groups).Error
 
-	return groups, err
+	return &group, err
 }
 
 // FindByName a group record by name.
@@ -96,7 +111,8 @@ func (svc *GroupService) AddMembers(gur []notice.GroupUserRelation) error {
 func (svc *GroupService) FindMembers(id uint64) ([]notice.User, error) {
 	var users []notice.User
 	var err error
-
+	//var count int
+	// TODO: 未实现分页
 	gur := notice.GroupUserRelation{GroupID: id}
 
 	cacheKey := getGroupUsersCacheKey(gur.GroupID)
@@ -131,25 +147,24 @@ func (svc *GroupService) FindMembers(id uint64) ([]notice.User, error) {
 }
 
 // FindAvailableMembers will list all users that can be add to current group id.
-func (svc *GroupService) FindAvailableMembers(id uint64, uname string) ([]notice.User, error) {
+func (svc *GroupService) FindAvailableMembers(id uint64, uname string, page, pageSize int) ([]notice.User, int, error) {
+	var count int
 	var users []notice.User
 	gur := notice.GroupUserRelation{GroupID: id}
 
-	//expr:=u.db.Where ("id not in (?) and name like ?",
-	//	u.db.Model(&gur).Where(gur).Select("user_id").QueryExpr(),
-	//	"%"+uname).QueryExpr()
-	//log.Debug("FindAvailableMembers: expr: %#v\n", expr)
-
-	err := svc.db.Where("id not in (?) and name like ?",
-		svc.db.Model(&gur).Where(gur).Select("user_id").QueryExpr(),
-		uname+"%").Find(&users).Error
-	//err := u.db.Where ("name LIKE ?", "%sh%").Find(&users).Error
+	err := svc.db.Model(&notice.User{}).
+		Where("id not in (?) and name like ?", svc.db.Model(&gur).Where(gur).Select("user_id").QueryExpr(), uname+"%").
+		Count(&count).
+		Offset((page - 1) * pageSize).
+		Limit(page * pageSize).
+		Find(&users).
+		Error
 
 	if err != nil {
 		log.Errorf("get group(%d) members failed, user_name: %serr: %s\n", id, uname, err)
 	}
 
-	return users, err
+	return users, count, err
 }
 
 // DeleteMembers pare group user relations deleting operations.

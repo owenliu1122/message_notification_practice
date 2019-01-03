@@ -2,7 +2,7 @@ package services
 
 import (
 	"github.com/owenliu1122/notice"
-	log "gopkg.in/cihub/seelog.v2"
+	log "github.com/sirupsen/logrus"
 )
 
 // NewWeChatSenderService return a wechat sender service.

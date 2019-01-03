@@ -7,7 +7,7 @@ import (
 	"github.com/owenliu1122/notice"
 	"github.com/owenliu1122/notice/pb"
 
-	log "gopkg.in/cihub/seelog.v2"
+	log "github.com/sirupsen/logrus"
 )
 
 // send notification channel type

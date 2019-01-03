@@ -1,12 +1,14 @@
 package controllers
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/labstack/echo"
 	"github.com/owenliu1122/notice"
-	log "gopkg.in/cihub/seelog.v2"
+	log "github.com/sirupsen/logrus"
 )
 
 // NewGroupController will return a groups table operation controller.
@@ -22,14 +24,30 @@ type GroupController struct {
 // List all group user relation records.
 func (ctl *GroupController) List(ctx echo.Context) error {
 
-	groups, err := ctl.svc.Find(0)
+	groupName := ctx.QueryParam("name")
+
+	pageStr := ctx.QueryParam("page")
+	page, e := strconv.Atoi(pageStr)
+	if e != nil {
+		log.Errorf("page string param convert to int, pagt: %s, err: %s", pageStr, e)
+		return ctx.String(http.StatusBadRequest, e.Error())
+	}
+
+	pageSizeStr := ctx.QueryParam("page_size")
+	pageSize, e := strconv.Atoi(pageSizeStr)
+	if e != nil {
+		log.Errorf("page size string param convert to int, page size: %s, err: %s", pageSizeStr, e)
+		return ctx.String(http.StatusBadRequest, e.Error())
+	}
+
+	groups, cnt, err := ctl.svc.List(groupName, page, pageSize)
 
 	if err != nil {
 		log.Error("get groups list failed, err: ", err)
 		return ctx.String(http.StatusInternalServerError, err.Error())
 	}
 
-	return ctx.JSON(http.StatusOK, groups)
+	return ctx.JSON(http.StatusOK, map[string]interface{}{"count": cnt, "data": groups})
 }
 
 // Create parse the group user relations table creating operations.
@@ -44,14 +62,14 @@ func (ctl *GroupController) Create(ctx echo.Context) error {
 	log.Infof("GroupController Bind -> group: %v\n", group)
 
 	if group.Name == "" {
-		err := log.Error("create group failed, err: no group name.")
+		err := errors.New("create group failed, err: no group name")
 		return ctx.String(http.StatusBadRequest, err.Error())
 	}
 
 	err := ctl.svc.Create(&group)
 
 	if err != nil {
-		log.Error("create group failed, err: ", err)
+		err = fmt.Errorf("create group failed, err: %s", err)
 		return ctx.String(http.StatusInternalServerError, err.Error())
 	}
 
@@ -69,19 +87,19 @@ func (ctl *GroupController) Update(ctx echo.Context) error {
 	log.Infof("GroupController Update -> group: %#v\n", group)
 
 	if group.ID == 0 {
-		err := log.Error("update group failed, err: no group id.")
+		err := errors.New("update group failed, err: no group id")
 		return ctx.String(http.StatusBadRequest, err.Error())
 	}
 
 	if group.Name == "" {
-		err := log.Error("update group failed, err: no group name.")
+		err := errors.New("update group failed, err: no group name")
 		return ctx.String(http.StatusBadRequest, err.Error())
 	}
 
 	err := ctl.svc.Update(&group)
 
 	if err != nil {
-		log.Error("update group failed, err: ", err)
+		err = fmt.Errorf("update group failed, err: %s", err)
 		return ctx.String(http.StatusInternalServerError, err.Error())
 	}
 
@@ -100,7 +118,7 @@ func (ctl *GroupController) Delete(ctx echo.Context) error {
 	log.Infof("GroupController Delete -> group: %#v\n", group)
 
 	if group.ID == 0 {
-		err := log.Error("delete group failed, err: no group id.")
+		err := errors.New("delete group failed, err: no group id")
 		return ctx.String(http.StatusBadRequest, err.Error())
 	}
 
@@ -120,7 +138,7 @@ func (ctl *GroupController) ListMembers(ctx echo.Context) error {
 	groupStr := ctx.QueryParam("group_id")
 	groupID, e := strconv.Atoi(groupStr)
 	if e != nil {
-		log.Errorf("group id string param convert to int, err: %s", groupStr, e)
+		log.Errorf("group id string param convert to int, group id: %s, err: %s", groupStr, e)
 		return ctx.String(http.StatusBadRequest, e.Error())
 	}
 
@@ -142,25 +160,39 @@ func (ctl *GroupController) AvailableMembers(ctx echo.Context) error {
 	searchUserName := ctx.QueryParam("user_name")
 	groupID, e := strconv.Atoi(groupStr)
 	if e != nil {
-		log.Errorf("group id string param convert to int, err: %s", groupStr, e)
+		log.Errorf("group id string param convert to int, group id: %s, err: %s", groupStr, e)
+		return ctx.String(http.StatusBadRequest, e.Error())
+	}
+
+	pageStr := ctx.QueryParam("page")
+	page, e := strconv.Atoi(pageStr)
+	if e != nil {
+		log.Errorf("page string param convert to int, page: %s, err: %s", pageStr, e)
+		return ctx.String(http.StatusBadRequest, e.Error())
+	}
+
+	pageSizeStr := ctx.QueryParam("page_size")
+	pageSize, e := strconv.Atoi(pageSizeStr)
+	if e != nil {
+		log.Errorf("page size string param convert to int, page size: %s, err: %s", pageSizeStr, e)
 		return ctx.String(http.StatusBadRequest, e.Error())
 	}
 
 	log.Debugf("GroupUserRelationController: groups_id: %d, user_name: %s\n", groupID, searchUserName)
 
 	if groupID == 0 {
-		err := log.Errorf("get group available members failed, err: group is invalid, groupID:%d", groupID)
+		err := fmt.Errorf("get group available members failed, err: group is invalid, groupID: %d", groupID)
 		return ctx.String(http.StatusBadRequest, err.Error())
 	}
 
-	users, err := ctl.svc.FindAvailableMembers(uint64(groupID), searchUserName)
+	users, count, err := ctl.svc.FindAvailableMembers(uint64(groupID), searchUserName, page, pageSize)
 
 	if err != nil {
 		log.Errorf("get group(%d) members list failed, user_name: %s err: %s", groupID, searchUserName, err)
 		return ctx.String(http.StatusInternalServerError, err.Error())
 	}
 
-	return ctx.JSON(http.StatusOK, users)
+	return ctx.JSON(http.StatusOK, map[string]interface{}{"count": count, "data": users})
 }
 
 // DeleteMembers pare group user relations deleting operations.

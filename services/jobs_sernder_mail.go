@@ -7,7 +7,7 @@ import (
 
 	"github.com/eapache/go-resiliency/retrier"
 	"github.com/owenliu1122/notice"
-	log "gopkg.in/cihub/seelog.v2"
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/mailgun/mailgun-go.v1"
 )
 

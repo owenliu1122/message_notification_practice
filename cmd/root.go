@@ -4,9 +4,9 @@ import (
 	"os"
 
 	"github.com/mitchellh/go-homedir"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	log "gopkg.in/cihub/seelog.v2"
 )
 
 var cfgFile string

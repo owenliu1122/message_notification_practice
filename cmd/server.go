@@ -16,11 +16,11 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 
 	"github.com/jinzhu/gorm"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
-	log "gopkg.in/cihub/seelog.v2"
 )
 
 var serverCmdPort int
