@@ -1,6 +1,8 @@
 package notice
 
-import "time"
+import (
+	"time"
+)
 
 // Group is an user group infomation.
 type Group struct {
@@ -12,10 +14,14 @@ type Group struct {
 }
 
 // GroupService is an user group method interface.
-type GroupService interface {
+type GroupServiceInterface interface {
 	Create(group *Group) error
-	Update(user *Group) error
-	Find(id uint64) (*Group, error)
+	Update(group *Group) error
+	Find(id uint) ([]Group, error)
 	FindByName(name string) (*Group, error)
-	Delete(user *Group) error
+	Delete(group *Group) (*Group, error)
+	AddMembers(gur []GroupUserRelation) error
+	FindMembers(id uint64) ([]User, error)
+	FindAvailableMembers(id uint64, uname string) ([]User, error)
+	DeleteMembers(gur []GroupUserRelation) error
 }

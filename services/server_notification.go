@@ -5,14 +5,13 @@ import (
 	"strings"
 
 	"github.com/owenliu1122/notice"
-	"github.com/owenliu1122/notice/mq"
 	"github.com/owenliu1122/notice/pb"
 
 	"github.com/jinzhu/gorm"
 )
 
 // NewNotificationService returns a notification record operation service.
-func NewNotificationService(db *gorm.DB, pc *mq.Producer, exchange, routing string) *NotificationService {
+func NewNotificationService(db *gorm.DB, pc notice.ProducerInterface, exchange, routing string) *NotificationService {
 	return &NotificationService{
 		db:         db,
 		pc:         pc,
@@ -24,7 +23,7 @@ func NewNotificationService(db *gorm.DB, pc *mq.Producer, exchange, routing stri
 // NotificationService is a notification record operation service.
 type NotificationService struct {
 	db         *gorm.DB
-	pc         *mq.Producer
+	pc         notice.ProducerInterface
 	pcExchange string
 	pcRouting  string
 }

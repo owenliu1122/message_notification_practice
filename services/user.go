@@ -1,15 +1,13 @@
 package services
 
 import (
-	"github.com/owenliu1122/notice"
-	"github.com/owenliu1122/notice/redis"
-
 	"github.com/jinzhu/gorm"
-	"github.com/labstack/gommon/log"
+	"github.com/owenliu1122/notice"
+	log "gopkg.in/cihub/seelog.v2"
 )
 
 // NewUserService returns user record operation service.
-func NewUserService(db *gorm.DB, cache redis.Cache) *UserService {
+func NewUserService(db *gorm.DB, cache notice.Cache) *UserService {
 	return &UserService{
 		db:    db,
 		cache: cache,
@@ -19,7 +17,7 @@ func NewUserService(db *gorm.DB, cache redis.Cache) *UserService {
 // UserService is a user record operation service.
 type UserService struct {
 	db    *gorm.DB
-	cache redis.Cache
+	cache notice.Cache
 }
 
 // Create a user record.

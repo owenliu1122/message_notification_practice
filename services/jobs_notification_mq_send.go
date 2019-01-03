@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/owenliu1122/notice"
-	"github.com/owenliu1122/notice/mq"
 	"github.com/owenliu1122/notice/pb"
 
 	log "gopkg.in/cihub/seelog.v2"
@@ -20,18 +19,18 @@ const (
 
 // MqSendService is mq send service.
 type MqSendService struct {
-	pc        *mq.Producer
-	gurSvc    *GroupUserRelationService
-	exRouting map[string]notice.Producer
+	pc        notice.ProducerInterface
+	grpSvc    *GroupService
+	exRouting map[string]notice.ProducerConfig
 }
 
 // NewMqSendService returns a mq send service.
-func NewMqSendService(pc *mq.Producer, gurSvc *GroupUserRelationService, exRouting map[string]notice.Producer) *MqSendService {
+func NewMqSendService(pc notice.ProducerInterface, grpSvc *GroupService, exRouting map[string]notice.ProducerConfig) *MqSendService {
 	svc := MqSendService{
 		pc:     pc,
-		gurSvc: gurSvc,
+		grpSvc: grpSvc,
 	}
-	svc.exRouting = make(map[string]notice.Producer)
+	svc.exRouting = make(map[string]notice.ProducerConfig)
 	svc.exRouting = exRouting
 	return &svc
 }
@@ -41,7 +40,7 @@ func (svc *MqSendService) Send(record *pb.MsgNotificationRequest) error {
 
 	var err error
 	var users []notice.User
-	users, err = svc.gurSvc.FindMembers(record.Group)
+	users, err = svc.grpSvc.FindMembers(record.Group)
 	if err != nil {
 		return fmt.Errorf("get group_user_relations failed, err: %s", err)
 	}

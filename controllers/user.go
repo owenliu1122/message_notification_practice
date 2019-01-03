@@ -7,7 +7,7 @@ import (
 	"github.com/owenliu1122/notice/services"
 
 	"github.com/labstack/echo"
-	"github.com/labstack/gommon/log"
+	log "gopkg.in/cihub/seelog.v2"
 )
 
 // NewUserController returns an user table operation controller.
@@ -44,6 +44,16 @@ func (ctl *UserController) Create(ctx echo.Context) error {
 
 	log.Infof("UserController Bind -> user: %v\n", user)
 
+	if user.Name == "" {
+		err := log.Error("create user failed, err: no user name.")
+		return ctx.String(http.StatusBadRequest, err.Error())
+	}
+
+	if user.Email == "" && user.Phone == "" && user.Wechat == "" {
+		err := log.Error("create user failed, did not fill in any communication method")
+		return ctx.String(http.StatusBadRequest, err.Error())
+	}
+
 	err := ctl.svc.Create(&user)
 
 	if err != nil {
@@ -65,6 +75,16 @@ func (ctl *UserController) Update(ctx echo.Context) error {
 
 	log.Infof("GroupController Update -> user: %#v\n", user)
 
+	if user.ID == 0 {
+		err := log.Error("update user failed, err: no user id.")
+		return ctx.String(http.StatusBadRequest, err.Error())
+	}
+
+	if user.Name == "" && user.Email == "" && user.Phone == "" && user.Wechat == "" {
+		err := log.Error("update user failed, did not fill in any modification information")
+		return ctx.String(http.StatusBadRequest, err.Error())
+	}
+
 	err := ctl.svc.Update(&user)
 
 	if err != nil {
@@ -85,6 +105,11 @@ func (ctl *UserController) Delete(ctx echo.Context) error {
 	}
 
 	log.Infof("GroupController Delete -> user: %#v\n", user)
+
+	if user.ID == 0 {
+		err := log.Error("deleted user failed, err: no user id.")
+		return ctx.String(http.StatusBadRequest, err.Error())
+	}
 
 	_, err := ctl.svc.Delete(&user)
 

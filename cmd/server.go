@@ -10,7 +10,6 @@ import (
 
 	"github.com/owenliu1122/notice"
 	"github.com/owenliu1122/notice/controllers"
-	"github.com/owenliu1122/notice/mq"
 	"github.com/owenliu1122/notice/pb"
 	"github.com/owenliu1122/notice/services"
 
@@ -68,14 +67,14 @@ func serverProc(cmd *cobra.Command, args []string) {
 
 	defer gs.GracefulStop()
 
-	mqConnection, err := mq.NewConnection(cfg.Server.RabbitMQ)
+	mqConnection, err := services.NewMQConnection(cfg.Server.RabbitMQ)
 	if err != nil {
 		log.Error("new rabbitmq connection failed, err: ", err)
 		return
 	}
 	defer mqConnection.Close()
 
-	producer, err := mq.NewProducer("server producer", mqConnection)
+	producer, err := services.NewProducer("server producer", mqConnection)
 	if err != nil {
 		log.Error("NewProducer failed, err: ", err)
 		return

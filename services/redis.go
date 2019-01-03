@@ -1,4 +1,4 @@
-package redis
+package services
 
 import (
 	"fmt"
@@ -8,20 +8,6 @@ import (
 	goredis "github.com/go-redis/redis"
 	log "gopkg.in/cihub/seelog.v2"
 )
-
-// Cache is a redis cache interface
-type Cache interface {
-	Get(key string, outVal interface{}) error
-	Set(key string, inVal interface{}, timeout time.Duration) error
-	Delete(key ...string) error
-	IsExist(key string) bool
-	Expire(key string, expiration time.Duration) error
-	ExpireAt(key string, tm time.Time) error
-	Close() error
-	// Set
-	SAdd(key string, inVal ...interface{}) error
-	SMembers(key string, outSlice interface{}) error
-}
 
 // MarshalFunc type is an adapter to marshal data for cache to redis.
 type MarshalFunc func(interface{}) ([]byte, error)

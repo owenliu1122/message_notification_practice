@@ -14,12 +14,3 @@ type NotificationRecord struct {
 	UpdatedAt    time.Time  `gorm:"column:updated_at;not null;DEFAULT:CURRENT_TIMESTAMP" json:"updated_at"`
 	DeletedAt    *time.Time `gorm:"column:deleted_at" json:"deleted_at"`
 }
-
-// NotificationRecordService is notification record operation method interface.
-type NotificationRecordService interface {
-	Create(user *GroupUserRelation) error
-	Update(user *GroupUserRelation, fields map[string]interface{}) error
-	Find(id uint64) (*GroupUserRelation, error)
-	FindByName(name string) (*GroupUserRelation, error)
-	Delete(user *GroupUserRelation) error
-}

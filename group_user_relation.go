@@ -13,13 +13,3 @@ type GroupUserRelation struct {
 	UpdatedAt time.Time  `gorm:"column:updated_at;not null;DEFAULT:CURRENT_TIMESTAMP" json:"updated_at"`
 	DeletedAt *time.Time `gorm:"column:deleted_at" json:"deleted_at"`
 }
-
-// GroupUserRelationService is group and user relation
-// description information operation interface.
-type GroupUserRelationService interface {
-	Create(user *GroupUserRelation) error
-	Update(user *GroupUserRelation, fields map[string]interface{}) error
-	FindFindMembers(id uint64) ([]User, error)
-	FindAvailableMembers(id uint64, uname string) ([]User, error)
-	Delete(gur []GroupUserRelation) error
-}

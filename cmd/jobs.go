@@ -11,8 +11,6 @@ import (
 
 	"github.com/owenliu1122/notice"
 	"github.com/owenliu1122/notice/controllers"
-	"github.com/owenliu1122/notice/mq"
-	"github.com/owenliu1122/notice/redis"
 	"github.com/owenliu1122/notice/services"
 
 	"github.com/jinzhu/gorm"
@@ -51,7 +49,7 @@ func notificationProc(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	cache, err := redis.NewRedisCli(cfg.Notification.Redis, json.Marshal, json.Unmarshal)
+	cache, err := services.NewRedisCli(cfg.Notification.Redis, json.Marshal, json.Unmarshal)
 	if err != nil {
 		fmt.Printf("init redis failed, err: %s", err)
 		return
@@ -64,24 +62,24 @@ func notificationProc(cmd *cobra.Command, args []string) {
 	}
 	defer db.Close()
 
-	mqConnection, err := mq.NewConnection(cfg.Notification.RabbitMQ)
+	mqConnection, err := services.NewMQConnection(cfg.Notification.RabbitMQ)
 	if err != nil {
 		log.Error("new rabbitmq connection failed, err: ", err)
 		return
 	}
 	defer mqConnection.Close()
 
-	producer, err := mq.NewProducer("jobs notification producer", mqConnection)
+	producer, err := services.NewProducer("jobs notification producer", mqConnection)
 	if err != nil {
 		log.Error("create producer failed, err: ", err)
 	}
 	defer producer.Close()
 
-	mqSendSvc := services.NewMqSendService(producer, services.NewGroupUserRelationService(db, cache), cfg.Notification.Producer)
+	mqSendSvc := services.NewMqSendService(producer, services.NewGroupService(db, cache), cfg.Notification.Producer)
 
 	ctl := controllers.NewNotificationController(mqSendSvc)
 
-	consumer, err := mq.NewConsumer(ctx,
+	consumer, err := services.NewConsumer(ctx,
 		"jobs notification consumer",
 		cfg.Notification.Consumer.Queue,
 		mqConnection,
@@ -126,14 +124,14 @@ func senderProc(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	mqConnection, err := mq.NewConnection(cfg.Sender.RabbitMQ)
+	mqConnection, err := services.NewMQConnection(cfg.Sender.RabbitMQ)
 	if err != nil {
 		log.Error("new rabbitmq connection failed, err: ", err)
 		return
 	}
 	defer mqConnection.Close()
 
-	producer, err := mq.NewProducer("jobs sender producer", mqConnection)
+	producer, err := services.NewProducer("jobs sender producer", mqConnection)
 	if err != nil {
 		log.Error("create producer failed, err: ", err)
 	}
@@ -148,7 +146,7 @@ func senderProc(cmd *cobra.Command, args []string) {
 	sendSvc := services.NewSenderService(jobsCmdType, cfg.Sender.SendService, producer, cfg.Sender.RetryProducer[jobsCmdType])
 	ctl := controllers.NewSenderController(sendSvc)
 
-	consumer, err := mq.NewConsumer(ctx,
+	consumer, err := services.NewConsumer(ctx,
 		"jobs sender consumer",
 		cfg.Sender.Consumer[jobsCmdType].Queue,
 		mqConnection,

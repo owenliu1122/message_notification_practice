@@ -9,7 +9,6 @@ import (
 
 	"github.com/owenliu1122/notice"
 	"github.com/owenliu1122/notice/controllers"
-	"github.com/owenliu1122/notice/redis"
 	"github.com/owenliu1122/notice/services"
 
 	"github.com/jinzhu/gorm"
@@ -36,7 +35,7 @@ var dashboardCmd = &cobra.Command{
 			return
 		}
 
-		cache, err := redis.NewRedisCli(cfg.Dashboard.Redis, json.Marshal, json.Unmarshal)
+		cache, err := services.NewRedisCli(cfg.Dashboard.Redis, json.Marshal, json.Unmarshal)
 		if err != nil {
 			fmt.Printf("init redis failed, err: %s", err)
 			return
@@ -57,9 +56,8 @@ var dashboardCmd = &cobra.Command{
 		e.Use(middleware.Logger())
 		e.Use(middleware.Recover())
 
-		grpCtl := controllers.NewGroupController(services.NewGroupService(db))
+		grpCtl := controllers.NewGroupController(services.NewGroupService(db, cache))
 		usrCtl := controllers.NewUserController(services.NewUserService(db, cache))
-		gurCtl := controllers.NewGroupUserRelationController(services.NewGroupUserRelationService(db, cache))
 
 		// Groups Routes
 		e.GET("/dashboard/groups", grpCtl.List)
@@ -74,12 +72,12 @@ var dashboardCmd = &cobra.Command{
 		e.DELETE("/dashboard/users", usrCtl.Delete)
 
 		// Group and User Relations Routes
-		e.GET("/dashboard/group_user_relations", gurCtl.ListMembers)
-		e.GET("/dashboard/group_user_relations/available_members", gurCtl.AvailableMembers)
-		e.POST("/dashboard/group_user_relations", gurCtl.AddMembers)
+		e.GET("/dashboard/group_user_relations", grpCtl.ListMembers)
+		e.GET("/dashboard/group_user_relations/available_members", grpCtl.AvailableMembers)
+		e.POST("/dashboard/group_user_relations", grpCtl.AddMembers)
 		//e.PUT("/dashboard/users", gurCtl.Update)
 		//e.PUT("/dashboard/users", gurCtl.Update)
-		e.DELETE("/dashboard/group_user_relations", gurCtl.DeleteMembers)
+		e.DELETE("/dashboard/group_user_relations", grpCtl.DeleteMembers)
 
 		// Start server
 		e.Logger.Fatal(e.Start(":8000"))

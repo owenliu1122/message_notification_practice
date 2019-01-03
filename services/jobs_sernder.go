@@ -4,11 +4,10 @@ import (
 	"fmt"
 
 	"github.com/owenliu1122/notice"
-	"github.com/owenliu1122/notice/mq"
 )
 
 // NewSenderService return target channel service interface.
-func NewSenderService(msgType string, sendToolCfg notice.SendService, pc *mq.Producer, exRouting notice.Producer) SenderService {
+func NewSenderService(msgType string, sendToolCfg notice.SendServiceConfig, pc notice.ProducerInterface, exRouting notice.ProducerConfig) SenderService {
 
 	switch msgType {
 	case NoticeTypeWeChat:
