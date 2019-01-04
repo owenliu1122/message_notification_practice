@@ -6,24 +6,25 @@ import (
 	"time"
 
 	"github.com/eapache/go-resiliency/retrier"
+	"github.com/fpay/foundation-go/log"
 	"github.com/owenliu1122/notice"
-	log "github.com/sirupsen/logrus"
 	"gopkg.in/mailgun/mailgun-go.v1"
 )
 
 // NewMailSenderService return a mail sender service.
-func NewMailSenderService(cfg notice.SendServiceConfig, pc notice.ProducerInterface, exRouting notice.ProducerConfig) *MailSenderService {
+func NewMailSenderService(logger *log.Logger, cfg notice.SendServiceConfig, pc notice.ProducerInterface, exRouting notice.ProducerConfig) *MailSenderService {
 	//cfg := toolCfg.(map[string]string)
 
 	domain, _ := b64.StdEncoding.DecodeString(cfg.Domain)
 	privateapikey, _ := b64.StdEncoding.DecodeString(cfg.PrivateAPIKey)
 	publicapikey, _ := b64.StdEncoding.DecodeString(cfg.PublicAPIKey)
 
-	log.Info("mailgun domain: ", string(domain))
-	log.Info("mailgun apikey: ", string(privateapikey))
-	log.Info("mailgun pubkey: ", string(publicapikey))
+	logger.Info("mailgun domain: ", string(domain))
+	logger.Info("mailgun apikey: ", string(privateapikey))
+	logger.Info("mailgun pubkey: ", string(publicapikey))
 
 	return &MailSenderService{
+		logger:    logger,
 		pc:        pc,
 		exRouting: exRouting,
 		mg: mailgun.NewMailgun(
@@ -36,6 +37,7 @@ func NewMailSenderService(cfg notice.SendServiceConfig, pc notice.ProducerInterf
 
 // MailSenderService is a mail sender service.
 type MailSenderService struct {
+	logger    *log.Logger
 	mg        mailgun.Mailgun
 	pc        notice.ProducerInterface
 	exRouting notice.ProducerConfig
@@ -44,7 +46,7 @@ type MailSenderService struct {
 // Handler parse a email message that needs to be sent.
 func (svc *MailSenderService) Handler(msg *notice.UserMessage) error {
 
-	log.Debugf("MailSenderService: userMsg: %#v\n", msg)
+	svc.logger.Debugf("MailSenderService: userMsg: %#v\n", msg)
 	r := retrier.New(retrier.ExponentialBackoff(3, 20*time.Millisecond), nil)
 
 	err := r.Run(func() error {
@@ -57,7 +59,7 @@ func (svc *MailSenderService) Handler(msg *notice.UserMessage) error {
 			msg.Content,
 			msg.Destination,
 		))
-		//log.Debugf("Handler():resp: %s, id: %s, msg: %#v", resp, id, msg)
+		//svc.logger.Debugf("Handler():resp: %s, id: %s, msg: %#v", resp, id, msg)
 
 		return err
 
@@ -67,7 +69,7 @@ func (svc *MailSenderService) Handler(msg *notice.UserMessage) error {
 		var jsonBytes []byte
 		jsonBytes, err = json.Marshal(msg)
 		if err != nil {
-			log.Error("publish to retr, marshal msg Body failed, err: ", err)
+			svc.logger.Error("publish to retr, marshal msg Body failed, err: ", err)
 			return err
 		}
 

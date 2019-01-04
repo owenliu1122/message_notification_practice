@@ -138,7 +138,7 @@ func (cm *Consumer) Close() error {
 	for _, v := range cm.Channels {
 		err = v.Close()
 		if err != nil {
-			log.Error("close consumer(%s) failed, err: ", err)
+			log.Errorf("close consumer failed, err: %s", err)
 		}
 	}
 
@@ -171,11 +171,9 @@ func (cm *Consumer) consumerProc(ctx context.Context, name string, channel *amqp
 		select {
 		case msg, ok := <-msgs:
 			if ok {
-				log.Debugf("consumer id: %s\n", name)
 				cm.Handler(ctx, &msg)
 			}
 		case <-ctx.Done():
-			log.Debug(name, "监控退出，停止了...")
 			return
 		}
 	}

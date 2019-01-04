@@ -4,15 +4,17 @@ import (
 	"encoding/json"
 	"strings"
 
+	"github.com/fpay/foundation-go/database"
+	"github.com/fpay/foundation-go/log"
+
 	"github.com/owenliu1122/notice"
 	"github.com/owenliu1122/notice/pb"
-
-	"github.com/jinzhu/gorm"
 )
 
 // NewNotificationService returns a notification record operation service.
-func NewNotificationService(db *gorm.DB, pc notice.ProducerInterface, exchange, routing string) *NotificationService {
+func NewNotificationService(logger *log.Logger, db *database.DB, pc notice.ProducerInterface, exchange, routing string) *NotificationService {
 	return &NotificationService{
+		logger:     logger,
 		db:         db,
 		pc:         pc,
 		pcExchange: exchange,
@@ -22,7 +24,8 @@ func NewNotificationService(db *gorm.DB, pc notice.ProducerInterface, exchange, 
 
 // NotificationService is a notification record operation service.
 type NotificationService struct {
-	db         *gorm.DB
+	logger     *log.Logger
+	db         *database.DB
 	pc         notice.ProducerInterface
 	pcExchange string
 	pcRouting  string

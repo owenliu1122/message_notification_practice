@@ -1,10 +1,10 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/mitchellh/go-homedir"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -21,7 +21,7 @@ var rootCmd = &cobra.Command{
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		log.Error(err)
+		fmt.Println(err)
 		os.Exit(1)
 	}
 }
@@ -48,7 +48,7 @@ func initConfig() {
 		// Find home directory.
 		home, err := homedir.Dir()
 		if err != nil {
-			log.Error(err)
+			fmt.Println(err)
 			os.Exit(1)
 		}
 
@@ -61,9 +61,9 @@ func initConfig() {
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		log.Info("Using config file:", viper.ConfigFileUsed())
+		fmt.Println("Using config file:", viper.ConfigFileUsed())
 	} else {
-		log.Info("failed to read config file: ", err.Error())
+		fmt.Println("failed to read config file: ", err.Error())
 	}
 }
 
@@ -71,5 +71,5 @@ func handleInitError(err error, module string) {
 	if err == nil {
 		return
 	}
-	log.Errorf("init %s failed, err: %s", module, err)
+	fmt.Printf("init %s failed, err: %s", module, err)
 }

@@ -2,20 +2,21 @@ package cmd
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/fpay/foundation-go/database"
 
 	"github.com/owenliu1122/notice"
 	"github.com/owenliu1122/notice/controllers"
 	"github.com/owenliu1122/notice/services"
 
-	"github.com/jinzhu/gorm"
+	"github.com/fpay/foundation-go/log"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
-	log "github.com/sirupsen/logrus"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -24,28 +25,26 @@ import (
 var dashboardCmd = &cobra.Command{
 	Use:   "dashboard",
 	Short: "Start up message notification dashboard server",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 
-		log.Debug("Start serverProc")
+		var cfg notice.DashboardConfig
 
-		var cfg notice.Config
-
-		if err := viper.Unmarshal(&cfg); err != nil {
-			fmt.Printf("%s service unmarshal configuration is failed, err: %s", cmd.Use, err.Error())
-			return
+		if err := viper.Sub(cmd.Use).Unmarshal(&cfg); err != nil {
+			return errors.Wrapf(err, "%s service unmarshal configuration is failed, err: %s", cmd.Use)
 		}
 
-		cache, err := services.NewRedisCli(cfg.Dashboard.Redis, json.Marshal, json.Unmarshal)
+		logger := log.NewLogger(cfg.Logger, os.Stdout)
+
+		logger.Info("Start serverProc")
+
+		cache, err := services.NewRedisCli(logger, cfg.Redis, json.Marshal, json.Unmarshal)
 		if err != nil {
-			fmt.Printf("init redis failed, err: %s", err)
-			return
+			return errors.Wrap(err, "init redis failed")
 		}
 
-		db, err := gorm.Open("mysql", cfg.Dashboard.MySQL)
-
+		db, err := database.NewDatabase(cfg.MySQL)
 		if err != nil {
-			fmt.Printf("init mysql failed, err: %s", err)
-			return
+			return errors.Wrap(err, "init mysql failed")
 		}
 
 		defer db.Close()
@@ -56,8 +55,8 @@ var dashboardCmd = &cobra.Command{
 		e.Use(middleware.Logger())
 		e.Use(middleware.Recover())
 
-		grpCtl := controllers.NewGroupController(services.NewGroupService(db, cache))
-		usrCtl := controllers.NewUserController(services.NewUserService(db, cache))
+		grpCtl := controllers.NewGroupController(logger, services.NewGroupService(logger, db, cache))
+		usrCtl := controllers.NewUserController(logger, services.NewUserService(logger, db, cache))
 
 		// Groups Routes
 		e.GET("/dashboard/groups", grpCtl.List)
@@ -82,11 +81,13 @@ var dashboardCmd = &cobra.Command{
 		// Start server
 		e.Logger.Fatal(e.Start(":8000"))
 
-		log.Info("server started")
+		logger.Info("server started")
 
 		quit := make(chan os.Signal, 1)
 		signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 		<-quit
+
+		return nil
 	},
 }
 

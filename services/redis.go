@@ -5,8 +5,8 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/fpay/foundation-go/log"
 	goredis "github.com/go-redis/redis"
-	log "github.com/sirupsen/logrus"
 )
 
 // MarshalFunc type is an adapter to marshal data for cache to redis.
@@ -18,12 +18,13 @@ type UnmarshalFunc func([]byte, interface{}) error
 // CacheRedis is redis cache type.
 type CacheRedis struct {
 	Client    *goredis.Client
+	logger    *log.Logger
 	Marshal   MarshalFunc
 	Unmarshal UnmarshalFunc
 }
 
 // NewRedisCli returns a redis cache type client.
-func NewRedisCli(url string, marshalfn MarshalFunc, unmarshalfn UnmarshalFunc) (*CacheRedis, error) {
+func NewRedisCli(logger *log.Logger, url string, marshalfn MarshalFunc, unmarshalfn UnmarshalFunc) (*CacheRedis, error) {
 
 	opt, err := goredis.ParseURL(url)
 	if err != nil {
@@ -34,35 +35,36 @@ func NewRedisCli(url string, marshalfn MarshalFunc, unmarshalfn UnmarshalFunc) (
 	fmt.Println("password is", opt.Password)
 
 	// Create client as usually.
-	cache := CacheRedis{
+	c := CacheRedis{
 		Client:    goredis.NewClient(opt),
+		logger:    logger,
 		Marshal:   marshalfn,
 		Unmarshal: unmarshalfn,
 	}
 
-	return &cache, nil
+	return &c, nil
 }
 
 // GetClient returns redis-go client.
-func (cache *CacheRedis) GetClient() (*goredis.Client, error) {
-	_, err := cache.Client.Ping().Result()
+func (c *CacheRedis) GetClient() (*goredis.Client, error) {
+	_, err := c.Client.Ping().Result()
 	if err != nil {
 		return nil, err
 	}
-	return cache.Client, nil
+	return c.Client, nil
 }
 
 // Close redis cache client.
-func (cache *CacheRedis) Close() error {
-	return cache.Client.Close()
+func (c *CacheRedis) Close() error {
+	return c.Client.Close()
 }
 
 // Get returns nil error when key does not exist.
-func (cache *CacheRedis) Get(key string, outVal interface{}) error {
+func (c *CacheRedis) Get(key string, outVal interface{}) error {
 
-	bytes, err := cache.Client.Get(key).Bytes()
+	bytes, err := c.Client.Get(key).Bytes()
 	if err != nil {
-		log.Errorf("cache: Get %s failed: %s", key, err)
+		c.logger.Errorf("cache: Get %s failed: %s", key, err)
 		return err
 	}
 
@@ -70,8 +72,8 @@ func (cache *CacheRedis) Get(key string, outVal interface{}) error {
 		return nil
 	}
 
-	if err := cache.Unmarshal(bytes, outVal); err != nil {
-		log.Errorf("cache: Unmarshal failed: %s", err)
+	if err := c.Unmarshal(bytes, outVal); err != nil {
+		c.logger.Errorf("cache: Unmarshal failed: %s", err)
 		return err
 	}
 
@@ -80,91 +82,91 @@ func (cache *CacheRedis) Get(key string, outVal interface{}) error {
 
 // Set key values such as redis set command.
 // Zero expiration means the key has no expiration time.
-func (cache *CacheRedis) Set(key string, inVal interface{}, expiration time.Duration) error {
+func (c *CacheRedis) Set(key string, inVal interface{}, expiration time.Duration) error {
 
-	bytes, err := cache.Marshal(inVal)
+	bytes, err := c.Marshal(inVal)
 	if err != nil {
-		log.Errorf("cache: Marshal failed: %s", err)
+		c.logger.Errorf("cache: Marshal failed: %s", err)
 		return err
 	}
 
 	fmt.Printf("Set, bytes: %#v\n", string(bytes))
 
-	_, err = cache.Client.Set(key, bytes, expiration).Result()
+	_, err = c.Client.Set(key, bytes, expiration).Result()
 	if err != nil {
-		log.Errorf("cache: Set %s failed: %s", key, err)
+		c.logger.Errorf("cache: Set %s failed: %s", key, err)
 	}
 
 	return err
 }
 
 // Delete keys from redis cache.
-func (cache *CacheRedis) Delete(key ...string) error {
+func (c *CacheRedis) Delete(key ...string) error {
 
-	_, err := cache.Client.Del(key...).Result()
+	_, err := c.Client.Del(key...).Result()
 	if err != nil {
-		log.Errorf("cache: Del %s failed: %s", key, err)
+		c.logger.Errorf("cache: Del %s failed: %s", key, err)
 	}
 
 	return err
 }
 
 // IsExist return key exists value, true or false.
-func (cache *CacheRedis) IsExist(key string) bool {
+func (c *CacheRedis) IsExist(key string) bool {
 
-	result, err := cache.Client.Exists(key).Result()
+	result, err := c.Client.Exists(key).Result()
 	if err != nil {
-		log.Errorf("cache: IsExist %s failed: %s", key, err)
+		c.logger.Errorf("cache: IsExist %s failed: %s", key, err)
 		return false
 	}
 	return result > 0
 }
 
 // Expire to set key expiration time.
-func (cache *CacheRedis) Expire(key string, expiration time.Duration) error {
-	_, err := cache.Client.Expire(key, expiration).Result()
+func (c *CacheRedis) Expire(key string, expiration time.Duration) error {
+	_, err := c.Client.Expire(key, expiration).Result()
 	if err != nil {
-		log.Errorf("cache: Expire %s failed: %s", key, err)
+		c.logger.Errorf("cache: Expire %s failed: %s", key, err)
 	}
 	return err
 }
 
 // ExpireAt to set key expiration time.
-func (cache *CacheRedis) ExpireAt(key string, tm time.Time) error {
-	_, err := cache.Client.ExpireAt(key, tm).Result()
+func (c *CacheRedis) ExpireAt(key string, tm time.Time) error {
+	_, err := c.Client.ExpireAt(key, tm).Result()
 	if err != nil {
-		log.Errorf("cache: ExpireAt %s failed: %s", key, err)
+		c.logger.Errorf("cache: ExpireAt %s failed: %s", key, err)
 	}
 	return err
 }
 
 // SAdd add a member to current set.
-func (cache *CacheRedis) SAdd(key string, inVal ...interface{}) error {
+func (c *CacheRedis) SAdd(key string, inVal ...interface{}) error {
 
 	bytesVals := make([]interface{}, 0, len(inVal))
 
 	for i := range inVal {
-		bytes, err := cache.Marshal(inVal[i])
+		bytes, err := c.Marshal(inVal[i])
 		if err != nil {
-			log.Errorf("cache: Marshal failed: %s", err)
+			c.logger.Errorf("cache: Marshal failed: %s", err)
 			return err
 		}
 		bytesVals = append(bytesVals, bytes)
 	}
 
-	_, err := cache.Client.SAdd(key, bytesVals...).Result()
+	_, err := c.Client.SAdd(key, bytesVals...).Result()
 	if err != nil {
-		log.Errorf("cache: SAdd %s failed: %s", key, err)
+		c.logger.Errorf("cache: SAdd %s failed: %s", key, err)
 	}
 	return err
 }
 
 // SMembers returns all members in current set.
-func (cache *CacheRedis) SMembers(key string, outSlice interface{}) error {
+func (c *CacheRedis) SMembers(key string, outSlice interface{}) error {
 
-	valSlice, err := cache.Client.SMembers(key).Result()
+	valSlice, err := c.Client.SMembers(key).Result()
 	if err != nil {
-		log.Errorf("cache: SMembers %s failed: %s", key, err)
+		c.logger.Errorf("cache: SMembers %s failed: %s", key, err)
 		return err
 	}
 
@@ -187,7 +189,7 @@ func (cache *CacheRedis) SMembers(key string, outSlice interface{}) error {
 	next := makeSliceNextElemFunc(v)
 	for i, s := range valSlice {
 		elem := next()
-		if e := cache.Unmarshal([]byte(s), elem.Addr().Interface()); e != nil {
+		if e := c.Unmarshal([]byte(s), elem.Addr().Interface()); e != nil {
 			e = fmt.Errorf("cache: SMembers index=%d value=%q failed: %s", i, s, e)
 			return e
 		}

@@ -8,6 +8,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/fpay/foundation-go/database"
+
 	"github.com/owenliu1122/notice"
 	"github.com/owenliu1122/notice/controllers"
 	"github.com/owenliu1122/notice/pb"
@@ -15,8 +17,7 @@ import (
 
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 
-	"github.com/jinzhu/gorm"
-	log "github.com/sirupsen/logrus"
+	"github.com/fpay/foundation-go/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
@@ -34,20 +35,20 @@ var serverCmd = &cobra.Command{
 
 func serverProc(cmd *cobra.Command, args []string) {
 
-	log.Debugf("redis：%#v\n", viper.GetStringMap("server"))
+	var cfg notice.ServerConfig
 
-	var cfg notice.Config
-
-	if err := viper.Unmarshal(&cfg); err != nil {
+	if err := viper.Sub(cmd.Use).Unmarshal(&cfg); err != nil {
 		fmt.Printf("%s service Unmarshal configuration is failed, err: %s", cmd.Use, err.Error())
 		return
 	}
 
-	log.Debug("Start serverProc")
+	logger := log.NewLogger(cfg.Logger, os.Stdout)
+
+	logger.Info("Start serverProc")
 	//ctx, cancel := context.WithCancel(context.Background())
 	//defer cancel()
 
-	db, err := gorm.Open("mysql", cfg.Server.MySQL)
+	db, err := database.NewDatabase(cfg.MySQL)
 	if err != nil {
 		fmt.Printf("init mysql failed, err: %s", err)
 		return
@@ -67,36 +68,36 @@ func serverProc(cmd *cobra.Command, args []string) {
 
 	defer gs.GracefulStop()
 
-	mqConnection, err := services.NewMQConnection(cfg.Server.RabbitMQ)
+	mqConnection, err := services.NewMQConnection(cfg.RabbitMQ)
 	if err != nil {
-		log.Error("new rabbitmq connection failed, err: ", err)
+		logger.Error("new rabbitmq connection failed, err: ", err)
 		return
 	}
 	defer mqConnection.Close()
 
 	producer, err := services.NewProducer("server producer", mqConnection)
 	if err != nil {
-		log.Error("NewProducer failed, err: ", err)
+		logger.Error("NewProducer failed, err: ", err)
 		return
 	}
 	defer producer.Close()
 
-	svc := services.NewNotificationService(db,
+	svc := services.NewNotificationService(logger, db,
 		producer,
-		cfg.Server.Producer.Exchange,
-		cfg.Server.Producer.RoutingKey)
+		cfg.Producer.Exchange,
+		cfg.Producer.RoutingKey)
 
-	ctl := controllers.NewServerController(svc)
+	ctl := controllers.NewServerController(logger, svc)
 	pb.RegisterMsgNotificationServer(gs, ctl)
 	go gs.Serve(lis)
 
-	log.Info("server started")
+	logger.Info("server started")
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 	<-quit
 
-	log.Debug("Exit serverProc")
+	logger.Info("Exit serverProc")
 }
 
 func init() {

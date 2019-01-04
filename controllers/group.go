@@ -6,19 +6,23 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/fpay/foundation-go/log"
 	"github.com/labstack/echo"
 	"github.com/owenliu1122/notice"
-	log "github.com/sirupsen/logrus"
 )
 
 // NewGroupController will return a groups table operation controller.
-func NewGroupController(svc notice.GroupServiceInterface) *GroupController {
-	return &GroupController{svc: svc}
+func NewGroupController(logger *log.Logger, svc notice.GroupServiceInterface) *GroupController {
+	return &GroupController{
+		logger: logger,
+		svc:    svc,
+	}
 }
 
 // GroupController is a groups table operation controller.
 type GroupController struct {
-	svc notice.GroupServiceInterface
+	svc    notice.GroupServiceInterface
+	logger *log.Logger
 }
 
 // List all group user relation records.
@@ -29,21 +33,21 @@ func (ctl *GroupController) List(ctx echo.Context) error {
 	pageStr := ctx.QueryParam("page")
 	page, e := strconv.Atoi(pageStr)
 	if e != nil {
-		log.Errorf("page string param convert to int, pagt: %s, err: %s", pageStr, e)
+		ctl.logger.Errorf("page string param convert to int, pagt: %s, err: %s", pageStr, e)
 		return ctx.String(http.StatusBadRequest, e.Error())
 	}
 
 	pageSizeStr := ctx.QueryParam("page_size")
 	pageSize, e := strconv.Atoi(pageSizeStr)
 	if e != nil {
-		log.Errorf("page size string param convert to int, page size: %s, err: %s", pageSizeStr, e)
+		ctl.logger.Errorf("page size string param convert to int, page size: %s, err: %s", pageSizeStr, e)
 		return ctx.String(http.StatusBadRequest, e.Error())
 	}
 
 	groups, cnt, err := ctl.svc.List(groupName, page, pageSize)
 
 	if err != nil {
-		log.Error("get groups list failed, err: ", err)
+		ctl.logger.Error("get groups list failed, err: ", err)
 		return ctx.String(http.StatusInternalServerError, err.Error())
 	}
 
@@ -55,11 +59,11 @@ func (ctl *GroupController) Create(ctx echo.Context) error {
 
 	var group notice.Group
 	if err := ctx.Bind(&group); err != nil {
-		log.Error("add group get body failed, err: ", err)
+		ctl.logger.Error("add group get body failed, err: ", err)
 		return ctx.String(http.StatusBadRequest, err.Error())
 	}
 
-	log.Infof("GroupController Bind -> group: %v\n", group)
+	ctl.logger.Infof("GroupController Bind -> group: %v\n", group)
 
 	if group.Name == "" {
 		err := errors.New("create group failed, err: no group name")
@@ -81,10 +85,10 @@ func (ctl *GroupController) Update(ctx echo.Context) error {
 
 	var group notice.Group
 	if err := ctx.Bind(&group); err != nil {
-		log.Error("update group get body failed, err: ", err)
+		ctl.logger.Error("update group get body failed, err: ", err)
 		return ctx.String(http.StatusBadRequest, err.Error())
 	}
-	log.Infof("GroupController Update -> group: %#v\n", group)
+	ctl.logger.Infof("GroupController Update -> group: %#v\n", group)
 
 	if group.ID == 0 {
 		err := errors.New("update group failed, err: no group id")
@@ -111,11 +115,11 @@ func (ctl *GroupController) Delete(ctx echo.Context) error {
 
 	var group notice.Group
 	if err := ctx.Bind(&group); err != nil {
-		log.Error("delete group get body failed, err: ", err)
+		ctl.logger.Error("delete group get body failed, err: ", err)
 		return ctx.String(http.StatusBadRequest, err.Error())
 	}
 
-	log.Infof("GroupController Delete -> group: %#v\n", group)
+	ctl.logger.Infof("GroupController Delete -> group: %#v\n", group)
 
 	if group.ID == 0 {
 		err := errors.New("delete group failed, err: no group id")
@@ -125,7 +129,7 @@ func (ctl *GroupController) Delete(ctx echo.Context) error {
 	_, err := ctl.svc.Delete(&group)
 
 	if err != nil {
-		log.Error("delete group failed, err: ", err)
+		ctl.logger.Error("delete group failed, err: ", err)
 		return ctx.String(http.StatusInternalServerError, err.Error())
 	}
 
@@ -138,15 +142,15 @@ func (ctl *GroupController) ListMembers(ctx echo.Context) error {
 	groupStr := ctx.QueryParam("group_id")
 	groupID, e := strconv.Atoi(groupStr)
 	if e != nil {
-		log.Errorf("group id string param convert to int, group id: %s, err: %s", groupStr, e)
+		ctl.logger.Errorf("group id string param convert to int, group id: %s, err: %s", groupStr, e)
 		return ctx.String(http.StatusBadRequest, e.Error())
 	}
 
-	log.Debugf("GroupUserRelationController: groups_id: %d\n", groupID)
+	ctl.logger.Debugf("GroupUserRelationController: groups_id: %d\n", groupID)
 
 	users, err := ctl.svc.FindMembers(uint64(groupID))
 	if err != nil {
-		log.Errorf("get group(%d) members list failed, err: %s", groupID, err)
+		ctl.logger.Errorf("get group(%d) members list failed, err: %s", groupID, err)
 		return ctx.String(http.StatusInternalServerError, err.Error())
 	}
 
@@ -160,25 +164,25 @@ func (ctl *GroupController) AvailableMembers(ctx echo.Context) error {
 	searchUserName := ctx.QueryParam("user_name")
 	groupID, e := strconv.Atoi(groupStr)
 	if e != nil {
-		log.Errorf("group id string param convert to int, group id: %s, err: %s", groupStr, e)
+		ctl.logger.Errorf("group id string param convert to int, group id: %s, err: %s", groupStr, e)
 		return ctx.String(http.StatusBadRequest, e.Error())
 	}
 
 	pageStr := ctx.QueryParam("page")
 	page, e := strconv.Atoi(pageStr)
 	if e != nil {
-		log.Errorf("page string param convert to int, page: %s, err: %s", pageStr, e)
+		ctl.logger.Errorf("page string param convert to int, page: %s, err: %s", pageStr, e)
 		return ctx.String(http.StatusBadRequest, e.Error())
 	}
 
 	pageSizeStr := ctx.QueryParam("page_size")
 	pageSize, e := strconv.Atoi(pageSizeStr)
 	if e != nil {
-		log.Errorf("page size string param convert to int, page size: %s, err: %s", pageSizeStr, e)
+		ctl.logger.Errorf("page size string param convert to int, page size: %s, err: %s", pageSizeStr, e)
 		return ctx.String(http.StatusBadRequest, e.Error())
 	}
 
-	log.Debugf("GroupUserRelationController: groups_id: %d, user_name: %s\n", groupID, searchUserName)
+	ctl.logger.Debugf("GroupUserRelationController: groups_id: %d, user_name: %s\n", groupID, searchUserName)
 
 	if groupID == 0 {
 		err := fmt.Errorf("get group available members failed, err: group is invalid, groupID: %d", groupID)
@@ -188,7 +192,7 @@ func (ctl *GroupController) AvailableMembers(ctx echo.Context) error {
 	users, count, err := ctl.svc.FindAvailableMembers(uint64(groupID), searchUserName, page, pageSize)
 
 	if err != nil {
-		log.Errorf("get group(%d) members list failed, user_name: %s err: %s", groupID, searchUserName, err)
+		ctl.logger.Errorf("get group(%d) members list failed, user_name: %s err: %s", groupID, searchUserName, err)
 		return ctx.String(http.StatusInternalServerError, err.Error())
 	}
 
@@ -201,7 +205,7 @@ func (ctl *GroupController) DeleteMembers(ctx echo.Context) error {
 	var gur []notice.GroupUserRelation
 
 	if err := ctx.Bind(&gur); err != nil {
-		log.Error("delete group user relations get body failed, err: ", err)
+		ctl.logger.Error("delete group user relations get body failed, err: ", err)
 		return ctx.String(http.StatusBadRequest, err.Error())
 	}
 
@@ -216,7 +220,7 @@ func (ctl *GroupController) DeleteMembers(ctx echo.Context) error {
 	}
 
 	if err := ctl.svc.DeleteMembers(gur); err != nil {
-		log.Error("delete group user relations failed, err: ", err)
+		ctl.logger.Error("delete group user relations failed, err: ", err)
 		return ctx.String(http.StatusInternalServerError, err.Error())
 	}
 
@@ -226,16 +230,16 @@ func (ctl *GroupController) DeleteMembers(ctx echo.Context) error {
 // AddMembers parse group user reations creating operation.
 func (ctl *GroupController) AddMembers(ctx echo.Context) error {
 
-	log.Debug("start AddMembers")
+	ctl.logger.Debug("start AddMembers")
 
 	var gur []notice.GroupUserRelation
 
 	if err := ctx.Bind(&gur); err != nil {
-		log.Error("create group user relations get body failed, err: ", err)
+		ctl.logger.Error("create group user relations get body failed, err: ", err)
 		return ctx.String(http.StatusBadRequest, err.Error())
 	}
 
-	log.Debugf("AddMembers: %#v\n", gur)
+	ctl.logger.Debugf("AddMembers: %#v\n", gur)
 
 	if len(gur) == 0 {
 		return ctx.String(http.StatusBadRequest, "add members list lenght is 0")
@@ -248,7 +252,7 @@ func (ctl *GroupController) AddMembers(ctx echo.Context) error {
 	}
 
 	if err := ctl.svc.AddMembers(gur); err != nil {
-		log.Error("create group user relations failed, err: ", err)
+		ctl.logger.Error("create group user relations failed, err: ", err)
 		return ctx.String(http.StatusInternalServerError, err.Error())
 	}
 

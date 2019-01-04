@@ -3,23 +3,26 @@ package services
 import (
 	"fmt"
 
-	"github.com/jinzhu/gorm"
-	"github.com/labstack/gommon/log"
+	"github.com/fpay/foundation-go/database"
+
+	"github.com/fpay/foundation-go/log"
 	"github.com/owenliu1122/notice"
 )
 
 // NewGroupService returns group record operation service.
-func NewGroupService(db *gorm.DB, cache notice.Cache) *GroupService {
+func NewGroupService(logger *log.Logger, db *database.DB, cache notice.Cache) *GroupService {
 	return &GroupService{
-		db:    db,
-		cache: cache,
+		logger: logger,
+		db:     db,
+		cache:  cache,
 	}
 }
 
 // GroupService is a group record operation service.
 type GroupService struct {
-	db    *gorm.DB
-	cache notice.Cache
+	logger *log.Logger
+	db     *database.DB
+	cache  notice.Cache
 }
 
 // Create a group record.
@@ -74,26 +77,26 @@ func (svc *GroupService) AddMembers(gur []notice.GroupUserRelation) error {
 	tx := svc.db.Begin()
 
 	for _, one := range gur {
-		log.Debugf("INSERT: %v\n", one)
+		svc.logger.Debugf("INSERT: %v\n", one)
 
 		cacheKey := getGroupUsersCacheKey(one.GroupID)
 
 		err = svc.db.Create(&one).Error
 		if err != nil {
-			log.Error("group user relations create failed, err: ", err)
+			svc.logger.Error("group user relations create failed, err: ", err)
 			svc.cache.Delete(cacheKey)
 			break
 		}
 		user := notice.User{ID: one.UserID}
 
 		if err = svc.db.Find(&user).Error; err != nil {
-			log.Error("group user find user failed, err: ", err)
+			svc.logger.Error("group user find user failed, err: ", err)
 			svc.cache.Delete(cacheKey)
 			break
 		}
 
 		if err = svc.cache.SAdd(cacheKey, &user); err != nil {
-			log.Errorf("group user SAdd user failed, cacheKey: %s, err: %s", cacheKey, err)
+			svc.logger.Errorf("group user SAdd user failed, cacheKey: %s, err: %s", cacheKey, err)
 			svc.cache.Delete(cacheKey)
 		}
 	}
@@ -119,9 +122,9 @@ func (svc *GroupService) FindMembers(id uint64) ([]notice.User, error) {
 	if svc.cache.IsExist(cacheKey) {
 		if err = svc.cache.SMembers(cacheKey, &users); err != nil {
 			svc.cache.Delete(cacheKey)
-			log.Errorf("FindMembers cache smembers failed, group_id: %d, err: %s", id, err)
+			svc.logger.Errorf("FindMembers cache smembers failed, group_id: %d, err: %s", id, err)
 		} else {
-			log.Debugf("Find Members from cahce, group_id: %d\n", gur.GroupID)
+			svc.logger.Debugf("Find Members from cahce, group_id: %d\n", gur.GroupID)
 			return users, nil
 		}
 	}
@@ -129,7 +132,7 @@ func (svc *GroupService) FindMembers(id uint64) ([]notice.User, error) {
 	err = svc.db.Where("id in (?)", svc.db.Model(&gur).Where(gur).Select("user_id").QueryExpr()).Find(&users).Error
 	//err := u.db.Raw("select * from users where id in (select user_id from group_user_relations where group_id = ?)", id).Scan(&users).Error
 	if err != nil {
-		log.Errorf("get group(%d) members failed, err: %s\n", id, err)
+		svc.logger.Errorf("get group(%d) members failed, err: %s\n", id, err)
 	}
 
 	s := make([]interface{}, len(users))
@@ -138,10 +141,10 @@ func (svc *GroupService) FindMembers(id uint64) ([]notice.User, error) {
 	}
 
 	if err = svc.cache.SAdd(cacheKey, s...); err != nil {
-		log.Errorf("FindMembers cache SAdd failed, group_id: %d, err: %s", id, err)
+		svc.logger.Errorf("FindMembers cache SAdd failed, group_id: %d, err: %s", id, err)
 	}
 
-	log.Debugf("Find Members from mysql, group_id: %d\n", gur.GroupID)
+	svc.logger.Debugf("Find Members from mysql, group_id: %d\n", gur.GroupID)
 
 	return users, err
 }
@@ -161,7 +164,7 @@ func (svc *GroupService) FindAvailableMembers(id uint64, uname string, page, pag
 		Error
 
 	if err != nil {
-		log.Errorf("get group(%d) members failed, user_name: %serr: %s\n", id, uname, err)
+		svc.logger.Errorf("get group(%d) members failed, user_name: %serr: %s\n", id, uname, err)
 	}
 
 	return users, count, err
@@ -173,7 +176,7 @@ func (svc *GroupService) DeleteMembers(gur []notice.GroupUserRelation) error {
 	tx := svc.db.Begin()
 
 	for _, one := range gur {
-		log.Debugf("DELETE: %v\n", one)
+		svc.logger.Debugf("DELETE: %v\n", one)
 
 		if err := svc.db.Where(one).Delete(notice.GroupUserRelation{}).Error; err != nil {
 			tx.Rollback()

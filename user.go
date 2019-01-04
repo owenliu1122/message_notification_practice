@@ -14,7 +14,7 @@ type User struct {
 	DeletedAt *time.Time `gorm:"column:deleted_at" json:"deleted_at"`
 }
 
-// UserService is user record information operation method interface
+// UserServiceInterface is user record information operation method interface
 type UserServiceInterface interface {
 	Create(user *User) error
 	Update(user *User) error

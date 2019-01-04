@@ -1,5 +1,10 @@
 package notice
 
+import (
+	"github.com/fpay/foundation-go/database"
+	"github.com/fpay/foundation-go/log"
+)
+
 // Config is all service types configurations.
 type Config struct {
 	Dashboard    DashboardConfig    `json:"dashboard" yaml:"dashboard"`
@@ -8,32 +13,36 @@ type Config struct {
 	Sender       SenderConfig       `json:"sender" yaml:"sender"`
 }
 
-// Dashboard is dashboard service processing used configuration.
+// DashboardConfig is dashboard service processing used configuration.
 type DashboardConfig struct {
-	MySQL string `json:"mysql" yaml:"mysql"`
-	Redis string `json:"redis" yaml:"redis"`
+	Logger log.Options              `json:"logger" yaml:"logger"`
+	MySQL  database.DatabaseOptions `json:"mysql" yaml:"mysql"`
+	Redis  string                   `json:"redis" yaml:"redis"`
 }
 
-// Server is server service processing used configuration.
+// ServerConfig is server service processing used configuration.
 type ServerConfig struct {
-	MySQL    string         `mapstructure:"mysql" json:"mysql" yaml:"mysql"`
-	Redis    string         `json:"redis" yaml:"redis"`
-	RabbitMQ string         `json:"rabbitmq" yaml:"rabbitmq"`
-	Producer ProducerConfig `json:"producer" yaml:"producer"`
+	Logger   log.Options              `json:"logger" yaml:"logger"`
+	MySQL    database.DatabaseOptions `mapstructure:"mysql" json:"mysql" yaml:"mysql"`
+	Redis    string                   `json:"redis" yaml:"redis"`
+	RabbitMQ string                   `json:"rabbitmq" yaml:"rabbitmq"`
+	Producer ProducerConfig           `json:"producer" yaml:"producer"`
 }
 
-// Notification is notification service processing used configuration.
+// NotificationConfig is notification service processing used configuration.
 type NotificationConfig struct {
-	MySQL    string                    `mapstructure:"mysql" json:"mysql" yaml:"mysql"`
+	Logger   log.Options               `json:"logger" yaml:"logger"`
+	MySQL    database.DatabaseOptions  `mapstructure:"mysql" json:"mysql" yaml:"mysql"`
 	Redis    string                    `json:"redis" yaml:"redis"`
 	RabbitMQ string                    `json:"rabbitmq" yaml:"rabbitmq"`
 	Consumer ConsumerConfig            `json:"consumer" yaml:"consumer"`
 	Producer map[string]ProducerConfig `json:"producer" yaml:"producer"`
 }
 
-// Sender is sender service processing used configuration.
+// SenderConfig is sender service processing used configuration.
 type SenderConfig struct {
-	MySQL         string                    `mapstructure:"mysql" json:"mysql" yaml:"mysql"`
+	Logger        log.Options               `json:"logger" yaml:"logger"`
+	MySQL         database.DatabaseOptions  `mapstructure:"mysql" json:"mysql" yaml:"mysql"`
 	Redis         string                    `json:"redis" yaml:"redis"`
 	RabbitMQ      string                    `json:"rabbitmq" yaml:"rabbitmq"`
 	RetryDelay    int64                     `json:"retrydelay" yaml:"retrydelay"`
@@ -43,7 +52,7 @@ type SenderConfig struct {
 	DelayProducer map[string]ProducerConfig `json:"delayproducer" yaml:"delayproducer"`
 }
 
-// SendService is sender service API configurations.
+// SendServiceConfig is sender service API configurations.
 type SendServiceConfig struct {
 	// mail sender service configurations
 	Domain        string `json:"domain" yaml:"domain"`
@@ -55,12 +64,12 @@ type SendServiceConfig struct {
 	// TODO: wechat sender service configurations
 }
 
-// Consumer is mq Consumer config information struct.
+// ConsumerConfig is mq Consumer config information struct.
 type ConsumerConfig struct {
 	Queue string `json:"queue" yaml:"queue"`
 }
 
-// Producer is mq producer config information struct.
+// ProducerConfig is mq producer config information struct.
 type ProducerConfig struct {
 	Exchange   string `json:"exchange" yaml:"exchange"`
 	RoutingKey string `json:"routingkey" yaml:"routingkey"`

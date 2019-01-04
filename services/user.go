@@ -1,23 +1,25 @@
 package services
 
 import (
-	"github.com/jinzhu/gorm"
+	"github.com/fpay/foundation-go/database"
+	"github.com/fpay/foundation-go/log"
 	"github.com/owenliu1122/notice"
-	log "github.com/sirupsen/logrus"
 )
 
 // NewUserService returns user record operation service.
-func NewUserService(db *gorm.DB, cache notice.Cache) *UserService {
+func NewUserService(logger *log.Logger, db *database.DB, cache notice.Cache) *UserService {
 	return &UserService{
-		db:    db,
-		cache: cache,
+		logger: logger,
+		db:     db,
+		cache:  cache,
 	}
 }
 
 // UserService is a user record operation service.
 type UserService struct {
-	db    *gorm.DB
-	cache notice.Cache
+	logger *log.Logger
+	db     *database.DB
+	cache  notice.Cache
 }
 
 // Create a user record.
@@ -31,9 +33,7 @@ func (svc *UserService) Update(user *notice.User) error {
 		return err
 	}
 
-	svc.deleteGroupCaches(user)
-
-	return nil
+	return svc.deleteGroupCaches(user)
 }
 
 // List user list by name , page, page size.
@@ -68,22 +68,23 @@ func (svc *UserService) FindByName(name string) (*notice.User, error) {
 
 // Delete a user record.
 func (svc *UserService) Delete(user *notice.User) error {
-	if err := svc.db.Delete(user).Error; err != nil {
+	var err error
+	if err = svc.db.Delete(user).Error; err != nil {
 		return err
 	}
 
-	if err := svc.deleteGroupCaches(user); err != nil {
-		log.Error("delete group cahces failed, err:", err)
+	if err = svc.deleteGroupCaches(user); err != nil {
+		svc.logger.Error("delete group cahces failed, err:", err)
 	}
 
-	return nil
+	return err
 }
 
 func (svc *UserService) deleteGroupCaches(user *notice.User) error {
 	var gurs []notice.GroupUserRelation
 
 	if err := svc.db.Where("user_id = ?", user.ID).Select("group_id").Find(&gurs).Error; err != nil {
-		log.Errorf("user delete group id cahce failed, err: ", err)
+		svc.logger.Errorf("user delete group id cahce failed, err: ", err)
 		return err
 	}
 
@@ -99,7 +100,7 @@ func (svc *UserService) deleteGroupCaches(user *notice.User) error {
 	}
 
 	if err := svc.cache.Delete(gurCacheKeys...); err != nil {
-		log.Error("delete related group cache failed, err: ", err)
+		svc.logger.Error("delete related group cache failed, err: ", err)
 		return err
 	}
 

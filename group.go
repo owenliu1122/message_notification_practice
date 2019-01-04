@@ -13,7 +13,7 @@ type Group struct {
 	DeletedAt *time.Time `gorm:"column:deleted_at" json:"deleted_at"`
 }
 
-// GroupService is an user group method interface.
+// GroupServiceInterface is an user group method interface.
 type GroupServiceInterface interface {
 	Create(group *Group) error
 	Update(group *Group) error

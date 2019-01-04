@@ -7,7 +7,7 @@ import (
 	"github.com/owenliu1122/notice"
 	"github.com/owenliu1122/notice/pb"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/fpay/foundation-go/log"
 )
 
 // send notification channel type
@@ -19,14 +19,16 @@ const (
 
 // MqSendService is mq send service.
 type MqSendService struct {
+	logger    *log.Logger
 	pc        notice.ProducerInterface
 	grpSvc    *GroupService
 	exRouting map[string]notice.ProducerConfig
 }
 
 // NewMqSendService returns a mq send service.
-func NewMqSendService(pc notice.ProducerInterface, grpSvc *GroupService, exRouting map[string]notice.ProducerConfig) *MqSendService {
+func NewMqSendService(logger *log.Logger, pc notice.ProducerInterface, grpSvc *GroupService, exRouting map[string]notice.ProducerConfig) *MqSendService {
 	svc := MqSendService{
+		logger: logger,
 		pc:     pc,
 		grpSvc: grpSvc,
 	}
@@ -46,7 +48,7 @@ func (svc *MqSendService) Send(record *pb.MsgNotificationRequest) error {
 	}
 
 	for k, v := range svc.exRouting {
-		log.Debugf("exRouting[%s]: %#v\n", k, v)
+		svc.logger.Debugf("exRouting[%s]: %#v\n", k, v)
 	}
 
 	for _, user := range users {
@@ -90,7 +92,7 @@ func (svc *MqSendService) Send(record *pb.MsgNotificationRequest) error {
 		}
 	}
 
-	log.Debugf("group_id: %d, %#v\n", record.Group, users)
+	svc.logger.Debugf("group_id: %d, %#v\n", record.Group, users)
 
 	return err
 }

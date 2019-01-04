@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/fpay/foundation-go/log"
 	"github.com/streadway/amqp"
 
 	"github.com/owenliu1122/notice"
@@ -13,12 +13,14 @@ import (
 
 // SenderController is a sender notification controller
 type SenderController struct {
+	logger  *log.Logger
 	sendSvc services.SenderService
 }
 
 // NewSenderController returns a controller for sending notifications.
-func NewSenderController(sendSvc services.SenderService) *SenderController {
+func NewSenderController(logger *log.Logger, sendSvc services.SenderService) *SenderController {
 	return &SenderController{
+		logger:  logger,
 		sendSvc: sendSvc,
 	}
 }
@@ -29,14 +31,14 @@ func (ctl *SenderController) Handler(ctx context.Context, msg *amqp.Delivery) {
 	userMsg := notice.UserMessage{}
 
 	if err := json.Unmarshal(msg.Body, &userMsg); err != nil {
-		log.Error("Unmarshal MsgNotificationRequest Body failed, err: ", err)
+		ctl.logger.Error("Unmarshal MsgNotificationRequest Body failed, err: ", err)
 		return
 	}
 
 	log.Debugf("SenderController:%T, %#v\n", ctl.sendSvc, userMsg)
 
 	if err := ctl.sendSvc.Handler(&userMsg); err != nil {
-		log.Error("get an error, handle it, err: ", err.Error())
+		ctl.logger.Error("get an error, handle it, err: ", err.Error())
 		return
 	}
 

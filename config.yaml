@@ -1,5 +1,14 @@
 server:
-  mysql: "root:123456@/msg_notification?charset=utf8&parseTime=True&loc=Local"
+  logger:
+    formatter: "text"
+    level:  "debug"
+    mode: "debug"
+  mysql:
+    driver: "mysql"
+    dsn: "root:123456@/msg_notification?charset=utf8&parseTime=True&loc=Local"
+    keep_alive: 10
+    max_idles: 2
+    max_opens: 10
   rabbitmq: "amqp://liujx:Liujiaxing@localhost:5672/"
 
   redis: "redis://localhost:6379/0"
@@ -8,7 +17,16 @@ server:
     exchange: "t.msg.ex"
 
 notification:
-  mysql: "root:123456@/msg_notification?charset=utf8&parseTime=True&loc=Local"
+  logger:
+    formatter: "text"
+    level:  "debug"
+    mode: "debug"
+  mysql:
+    driver: "mysql"
+    dsn: "root:123456@/msg_notification?charset=utf8&parseTime=True&loc=Local"
+    keep_alive: 10
+    max_idles: 2
+    max_opens: 10
   rabbitmq: "amqp://liujx:Liujiaxing@localhost:5672/"
   redis: "redis://localhost:6379/0"
   consumer:
@@ -25,7 +43,16 @@ notification:
       routingkey: "push.msg.q.notification.wechat"
 
 sender:
-  mysql: "root:123456@/msg_notification?charset=utf8&parseTime=True&loc=Local"
+  logger:
+    formatter: "text"
+    level:  "debug"
+    mode: "debug"
+  mysql:
+    driver: "mysql"
+    dsn: "root:123456@/msg_notification?charset=utf8&parseTime=True&loc=Local"
+    keep_alive: 10
+    max_idles: 2
+    max_opens: 10
   rabbitmq: "amqp://liujx:Liujiaxing@localhost:5672/"
   redis: "redis://localhost:6379/0"
   retrydelay: 6
@@ -66,5 +93,14 @@ sender:
       publicapikey: "cHVia2V5LTI1ZjlmZGZhN2FmNTg4ODAzMTFlYzI4OTc3YzEwZjZj"
 
 dashboard:
-  mysql: "root:123456@/msg_notification?charset=utf8&parseTime=True&loc=Local"
+  logger:
+    formatter: "text"
+    level:  "debug"
+    mode: "debug"
+  mysql:
+    driver: "mysql"
+    dsn: "root:123456@/msg_notification?charset=utf8&parseTime=True&loc=Local"
+    keep_alive: 10
+    max_idles: 2
+    max_opens: 10
   redis: "redis://localhost:6379/0"
