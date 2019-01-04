@@ -30,7 +30,7 @@ var dashboardCmd = &cobra.Command{
 		var cfg notice.DashboardConfig
 
 		if err := viper.Sub(cmd.Use).Unmarshal(&cfg); err != nil {
-			return errors.Wrapf(err, "%s service unmarshal configuration is failed, err: %s", cmd.Use)
+			return errors.Wrapf(err, "%s service unmarshal configuration is failed", cmd.Use)
 		}
 
 		logger := log.NewLogger(cfg.Logger, os.Stdout)
