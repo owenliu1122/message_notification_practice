@@ -1,8 +1,10 @@
 package services
 
 import (
-	"encoding/json"
+	"context"
 	"strings"
+
+	"github.com/fpay/foundation-go"
 
 	"github.com/fpay/foundation-go/database"
 	"github.com/fpay/foundation-go/log"
@@ -12,29 +14,26 @@ import (
 )
 
 // NewNotificationService returns a notification record operation service.
-func NewNotificationService(logger *log.Logger, db *database.DB, pc notice.ProducerInterface, exchange, routing string) *NotificationService {
+func NewNotificationService(logger *log.Logger, db *database.DB, pc foundation.JobManager, queue string) *NotificationService {
 	return &NotificationService{
-		logger:     logger,
-		db:         db,
-		pc:         pc,
-		pcExchange: exchange,
-		pcRouting:  routing,
+		logger: logger,
+		db:     db,
+		pc:     pc,
+		job:    &Job{Q: queue},
 	}
 }
 
 // NotificationService is a notification record operation service.
 type NotificationService struct {
-	logger     *log.Logger
-	db         *database.DB
-	pc         notice.ProducerInterface
-	pcExchange string
-	pcRouting  string
+	logger *log.Logger
+	db     *database.DB
+	pc     foundation.JobManager
+	job    *Job
 }
 
 // Create a notification record.
-func (u *NotificationService) Create(pbReq *pb.MsgNotificationRequest) error {
+func (u *NotificationService) Create(ctx context.Context, pbReq *pb.MsgNotificationRequest) error {
 	var err error
-	var jsonBytes []byte
 
 	typesStr := make([]string, len(pbReq.NoticeType))
 	for _, noticeType := range pbReq.NoticeType {
@@ -49,12 +48,8 @@ func (u *NotificationService) Create(pbReq *pb.MsgNotificationRequest) error {
 		return err
 	}
 
-	jsonBytes, err = json.Marshal(pbReq)
-	if err != nil {
-		return err
-	}
-
-	err = u.pc.Publish(u.pcExchange, u.pcRouting, jsonBytes)
+	u.job.Message = pbReq
+	err = u.pc.Dispatch(ctx, u.job)
 	if err != nil {
 		return err
 	}

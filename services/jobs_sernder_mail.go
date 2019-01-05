@@ -1,9 +1,11 @@
 package services
 
 import (
+	"context"
 	b64 "encoding/base64"
-	"encoding/json"
 	"time"
+
+	"github.com/fpay/foundation-go"
 
 	"github.com/eapache/go-resiliency/retrier"
 	"github.com/fpay/foundation-go/log"
@@ -12,8 +14,7 @@ import (
 )
 
 // NewMailSenderService return a mail sender service.
-func NewMailSenderService(logger *log.Logger, cfg notice.SendServiceConfig, pc notice.ProducerInterface, exRouting notice.ProducerConfig) *MailSenderService {
-	//cfg := toolCfg.(map[string]string)
+func NewMailSenderService(logger *log.Logger, cfg notice.SendServiceConfig, pc foundation.JobManager) *MailSenderService {
 
 	domain, _ := b64.StdEncoding.DecodeString(cfg.Domain)
 	privateapikey, _ := b64.StdEncoding.DecodeString(cfg.PrivateAPIKey)
@@ -24,9 +25,8 @@ func NewMailSenderService(logger *log.Logger, cfg notice.SendServiceConfig, pc n
 	logger.Info("mailgun pubkey: ", string(publicapikey))
 
 	return &MailSenderService{
-		logger:    logger,
-		pc:        pc,
-		exRouting: exRouting,
+		logger: logger,
+		pc:     pc,
 		mg: mailgun.NewMailgun(
 			string(domain),
 			string(privateapikey),
@@ -37,14 +37,13 @@ func NewMailSenderService(logger *log.Logger, cfg notice.SendServiceConfig, pc n
 
 // MailSenderService is a mail sender service.
 type MailSenderService struct {
-	logger    *log.Logger
-	mg        mailgun.Mailgun
-	pc        notice.ProducerInterface
-	exRouting notice.ProducerConfig
+	logger *log.Logger
+	mg     mailgun.Mailgun
+	pc     foundation.JobManager
 }
 
 // Handler parse a email message that needs to be sent.
-func (svc *MailSenderService) Handler(msg *notice.UserMessage) error {
+func (svc *MailSenderService) Handler(ctx context.Context, msg *notice.UserMessage) error {
 
 	svc.logger.Debugf("MailSenderService: userMsg: %#v\n", msg)
 	r := retrier.New(retrier.ExponentialBackoff(3, 20*time.Millisecond), nil)
@@ -64,19 +63,6 @@ func (svc *MailSenderService) Handler(msg *notice.UserMessage) error {
 		return err
 
 	})
-
-	if err != nil {
-		var jsonBytes []byte
-		jsonBytes, err = json.Marshal(msg)
-		if err != nil {
-			svc.logger.Error("publish to retr, marshal msg Body failed, err: ", err)
-			return err
-		}
-
-		if err = svc.pc.Publish(svc.exRouting.Exchange, svc.exRouting.RoutingKey, jsonBytes); err != nil {
-			return err
-		}
-	}
 
 	return err
 }

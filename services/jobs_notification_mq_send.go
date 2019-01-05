@@ -1,8 +1,10 @@
 package services
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
+
+	"github.com/fpay/foundation-go"
 
 	"github.com/owenliu1122/notice"
 	"github.com/owenliu1122/notice/pb"
@@ -19,36 +21,38 @@ const (
 
 // MqSendService is mq send service.
 type MqSendService struct {
-	logger    *log.Logger
-	pc        notice.ProducerInterface
-	grpSvc    *GroupService
-	exRouting map[string]notice.ProducerConfig
+	logger *log.Logger
+	grpSvc *GroupService
+	pc     foundation.JobManager
+	job    map[string]*Job
 }
 
 // NewMqSendService returns a mq send service.
-func NewMqSendService(logger *log.Logger, pc notice.ProducerInterface, grpSvc *GroupService, exRouting map[string]notice.ProducerConfig) *MqSendService {
+func NewMqSendService(logger *log.Logger, pc foundation.JobManager, grpSvc *GroupService, jobCfg map[string]notice.JobConfig) *MqSendService {
 	svc := MqSendService{
 		logger: logger,
 		pc:     pc,
 		grpSvc: grpSvc,
+		job:    make(map[string]*Job),
 	}
-	svc.exRouting = make(map[string]notice.ProducerConfig)
-	svc.exRouting = exRouting
+	for k := range jobCfg {
+		svc.job[k] = &Job{
+			Q: jobCfg[k].Queue,
+			D: jobCfg[k].Delay,
+		}
+	}
+
 	return &svc
 }
 
 // Send parse send a record to  exchange and routingkey.
-func (svc *MqSendService) Send(record *pb.MsgNotificationRequest) error {
+func (svc *MqSendService) Send(ctx context.Context, record *pb.MsgNotificationRequest) error {
 
 	var err error
 	var users []notice.User
 	users, err = svc.grpSvc.FindMembers(record.Group)
 	if err != nil {
 		return fmt.Errorf("get group_user_relations failed, err: %s", err)
-	}
-
-	for k, v := range svc.exRouting {
-		svc.logger.Debugf("exRouting[%s]: %#v\n", k, v)
 	}
 
 	for _, user := range users {
@@ -76,17 +80,13 @@ func (svc *MqSendService) Send(record *pb.MsgNotificationRequest) error {
 				return fmt.Errorf("unknown notice type: %s", strType)
 			}
 
-			producerCfg, ok := svc.exRouting[strType]
+			job, ok := svc.job[strType]
 			if !ok {
 				return fmt.Errorf("get producer config failed, Unknown notice type: %s", strType)
 			}
 
-			body, e := json.Marshal(&userMsg)
-			if e != nil {
-				return fmt.Errorf("email marshal UserMsg failed, err: %s", e)
-			}
-
-			if err = svc.pc.Publish(producerCfg.Exchange, producerCfg.RoutingKey, body); err != nil {
+			job.Message = &userMsg
+			if err = svc.pc.Dispatch(ctx, job); err != nil {
 				return err
 			}
 		}

@@ -7,9 +7,11 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
+
+	"github.com/fpay/foundation-go"
 
 	"github.com/fpay/foundation-go/database"
+	"github.com/fpay/foundation-go/job"
 
 	"github.com/owenliu1122/notice"
 	"github.com/owenliu1122/notice/controllers"
@@ -44,7 +46,7 @@ func notificationProc(cmd *cobra.Command, args []string) {
 
 	var cfg notice.NotificationConfig
 
-	if err := viper.Unmarshal(&cfg); err != nil {
+	if err := viper.Sub(cmd.Use).Unmarshal(&cfg); err != nil {
 		fmt.Printf("%s service Unmarshal configuration is failed, err: %s", cmd.Use, err.Error())
 		return
 	}
@@ -55,7 +57,7 @@ func notificationProc(cmd *cobra.Command, args []string) {
 
 	cache, err := services.NewRedisCli(logger, cfg.Redis, json.Marshal, json.Unmarshal)
 	if err != nil {
-		fmt.Printf("init redis failed, err: %s", err)
+		fmt.Printf("init redis failed, redis: %#v, err: %s", cfg, err)
 		return
 	}
 
@@ -66,39 +68,18 @@ func notificationProc(cmd *cobra.Command, args []string) {
 	}
 	defer db.Close()
 
-	mqConnection, err := services.NewMQConnection(cfg.RabbitMQ)
-	if err != nil {
-		logger.Error("new rabbitmq connection failed, err: ", err)
-		return
-	}
-	defer mqConnection.Close()
+	jobManager := job.NewJobManager(cfg.RabbitMQ)
 
-	producer, err := services.NewProducer("jobs notification producer", mqConnection)
-	if err != nil {
-		logger.Error("create producer failed, err: ", err)
-	}
-	defer producer.Close()
-
-	mqSendSvc := services.NewMqSendService(logger, producer, services.NewGroupService(logger, db, cache), cfg.Producer)
+	mqSendSvc := services.NewMqSendService(logger, jobManager, services.NewGroupService(logger, db, cache), cfg.Producer)
 
 	ctl := controllers.NewNotificationController(logger, mqSendSvc)
 
-	consumer, err := services.NewConsumer(ctx,
-		"jobs notification consumer",
-		cfg.Consumer.Queue,
-		mqConnection,
-		jobsCmdNum,
-		true,
-		ctl.Handler)
-
-	if err != nil {
-		logger.Error("create consumer failed, err: ", err)
-		return
-	}
-	defer consumer.Close()
-
-	if e := consumer.Start(); e != nil {
-		logger.Error("start consumer failed, err: ", e)
+	for i := 0; i < jobsCmdNum; i++ {
+		go func(ctx context.Context, jobManager foundation.JobManager, queue string, handler foundation.JobHandler) {
+			if err := jobManager.Do(ctx, queue, handler); err != nil {
+				logger.Errorf("job manager DO() function return err: %s", err)
+			}
+		}(ctx, jobManager, cfg.Consumer.Queue, ctl.Handler)
 	}
 
 	quit := make(chan os.Signal, 1)
@@ -121,7 +102,7 @@ func senderProc(cmd *cobra.Command, args []string) {
 
 	var cfg notice.SenderConfig
 
-	if err := viper.Unmarshal(&cfg); err != nil {
+	if err := viper.Sub(cmd.Use).Unmarshal(&cfg); err != nil {
 		fmt.Printf("%s service Unmarshal configuration is failed, err: %s", cmd.Use, err.Error())
 		return
 	}
@@ -130,50 +111,19 @@ func senderProc(cmd *cobra.Command, args []string) {
 
 	logger.Info("Start Jobs Sender!")
 
-	mqConnection, err := services.NewMQConnection(cfg.RabbitMQ)
-	if err != nil {
-		logger.Error("new rabbitmq connection failed, err: ", err)
-		return
-	}
-	defer mqConnection.Close()
+	jobManager := job.NewJobManager(cfg.RabbitMQ)
 
-	producer, err := services.NewProducer("jobs sender producer", mqConnection)
-	if err != nil {
-		logger.Error("create producer failed, err: ", err)
-		return
-	}
-	defer producer.Close()
+	sendSvc := services.NewSenderService(logger, jobsCmdType, cfg.SendService, jobManager)
+	ctl := controllers.NewSenderController(logger, cfg.RetryDelay, sendSvc)
 
-	if err = producer.DeclareExpiration(cfg.RetryProducer[jobsCmdType].Exchange,
-		cfg.RetryProducer[jobsCmdType].RoutingKey,
-		cfg.DelayProducer[jobsCmdType].Exchange,
-		cfg.DelayProducer[jobsCmdType].RoutingKey,
-		time.Duration(cfg.RetryDelay)*time.Second); err != nil {
-		logger.Error("declare delay queue producer failed, err: ", err)
-		return
+	//jobManager.Do(ctx, cfg.Consumer[jobsCmdType].Queue, ctl.Handler)
 
-	}
-
-	sendSvc := services.NewSenderService(logger, jobsCmdType, cfg.SendService, producer, cfg.RetryProducer[jobsCmdType])
-	ctl := controllers.NewSenderController(logger, sendSvc)
-
-	consumer, err := services.NewConsumer(ctx,
-		"jobs sender consumer",
-		cfg.Consumer[jobsCmdType].Queue,
-		mqConnection,
-		jobsCmdNum,
-		true,
-		ctl.Handler)
-
-	if err != nil {
-		logger.Error("create consumer failed, err: ", err)
-		return
-	}
-	defer consumer.Close()
-
-	if e := consumer.Start(); e != nil {
-		logger.Error("start consumer failed, err: ", e)
-		return
+	for i := 0; i < jobsCmdNum; i++ {
+		go func(ctx context.Context, jobManager foundation.JobManager, queue string, handler foundation.JobHandler) {
+			if err := jobManager.Do(ctx, queue, handler); err != nil {
+				logger.Errorf("job manager DO() function return err: %s", err)
+			}
+		}(ctx, jobManager, cfg.Consumer[jobsCmdType].Queue, ctl.Handler)
 	}
 
 	quit := make(chan os.Signal, 1)

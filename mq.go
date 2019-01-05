@@ -1,16 +1,14 @@
 package notice
 
-import "time"
-
-// ConsumerInterface is a redis consumer interface
-type ConsumerInterface interface {
-	Close() error
-	Start() error
+// Job 消息队列发布载体
+type Job struct {
+	Message interface{} // Message struct
+	Q       string      // Queue name
+	D       int         // Delay time
 }
 
-// ProducerInterface is a redis producer interface
-type ProducerInterface interface {
-	Publish(exchange, routingKey string, body []byte) error
-	DeclareExpiration(exchange, routingKey, delayExchange, delayRouting string, expiration time.Duration) error
-	Close() error
+type JobInterface interface {
+	Queue() string
+	Delay() int
+	Marshal() ([]byte, error)
 }

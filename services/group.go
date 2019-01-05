@@ -3,6 +3,8 @@ package services
 import (
 	"fmt"
 
+	"github.com/pkg/errors"
+
 	"github.com/fpay/foundation-go/database"
 
 	"github.com/fpay/foundation-go/log"
@@ -133,6 +135,11 @@ func (svc *GroupService) FindMembers(id uint64) ([]notice.User, error) {
 	//err := u.db.Raw("select * from users where id in (select user_id from group_user_relations where group_id = ?)", id).Scan(&users).Error
 	if err != nil {
 		svc.logger.Errorf("get group(%d) members failed, err: %s\n", id, err)
+		return nil, err
+	}
+
+	if len(users) == 0 {
+		return nil, errors.Wrapf(errors.New("group no members"), "group_id: %d", gur.GroupID)
 	}
 
 	s := make([]interface{}, len(users))

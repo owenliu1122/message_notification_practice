@@ -9,12 +9,16 @@ server:
     keep_alive: 10
     max_idles: 2
     max_opens: 10
-  rabbitmq: "amqp://liujx:Liujiaxing@localhost:5672/"
+  rabbitmq:
+    username: "liujx"
+    password: "Liujiaxing"
+    host: "localhost"
+    port: 5672
+    vhost: "/"
 
   redis: "redis://localhost:6379/0"
   producer:
-    routingkey: "push.msg.q"
-    exchange: "t.msg.ex"
+    queue: "push.msg.q"
 
 notification:
   logger:
@@ -27,20 +31,23 @@ notification:
     keep_alive: 10
     max_idles: 2
     max_opens: 10
-  rabbitmq: "amqp://liujx:Liujiaxing@localhost:5672/"
+  # rabbitmq: "amqp://liujx:Liujiaxing@localhost:5672/"
+  rabbitmq:
+    username: "liujx"
+    password: "Liujiaxing"
+    host: "localhost"
+    port: 5672
+    vhost: "/"
   redis: "redis://localhost:6379/0"
   consumer:
     queue: "push.msg.q"
   producer:
     mail:
-      exchange: "t.msg.ex.notification"
-      routingkey: "push.msg.q.notification.mail"
+      queue: "push.msg.q.notification.mail"
     phone:
-      exchange: "t.msg.ex.notification"
-      routingkey: "push.msg.q.notification.phone"
+      queue: "push.msg.q.notification.phone"
     wechat:
-      exchange: "t.msg.ex.notification"
-      routingkey: "push.msg.q.notification.wechat"
+      queue: "push.msg.q.notification.wechat"
 
 sender:
   logger:
@@ -53,9 +60,15 @@ sender:
     keep_alive: 10
     max_idles: 2
     max_opens: 10
-  rabbitmq: "amqp://liujx:Liujiaxing@localhost:5672/"
+  # rabbitmq: "amqp://liujx:Liujiaxing@localhost:5672/"
+  rabbitmq:
+    username: "liujx"
+    password: "Liujiaxing"
+    host: "localhost"
+    port: 5672
+    vhost: "/"
   redis: "redis://localhost:6379/0"
-  retrydelay: 6
+  retrydelay: 5
   consumer:
     mail:
       queue: "push.msg.q.notification.mail"
@@ -63,29 +76,6 @@ sender:
       queue: "push.msg.q.notification.phone"
     wechat:
       queue: "push.msg.q.notification.wechat"
-
-  retryproducer:
-    mail:
-      exchange: "t.msg.ex.sender.retry"
-      routingkey: "push.msg.q.sender.retry.mail"
-    phone:
-      exchange: "t.msg.ex.sender.retry"
-      routingkey: "push.msg.q.sender.retry.phone"
-    wechat:
-      exchange: "t.msg.ex.sender.retry"
-      routingkey: "push.msg.q.sender.retry.wechat"
-
-  delayproducer:
-    mail:
-      exchange: "t.msg.ex.notification"
-      routingkey: "push.msg.q.notification.mail"
-    phone:
-      exchange: "t.msg.ex.notification"
-      routingkey: "push.msg.q.notification.phone"
-    wechat:
-      exchange: "t.msg.ex.notification"
-      routingkey: "push.msg.q.notification.wechat"
-
 
   sendservice:
       domain: "c2FuZGJveGFhZmYxYjc2OWEzYzQyOWRhZWY3NzdkZmVlZDhmMTczLm1haWxndW4ub3Jn"

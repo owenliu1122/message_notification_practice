@@ -8,6 +8,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/fpay/foundation-go/job"
+
 	"github.com/fpay/foundation-go/database"
 
 	"github.com/owenliu1122/notice"
@@ -53,7 +55,6 @@ func serverProc(cmd *cobra.Command, args []string) {
 		fmt.Printf("init mysql failed, err: %s", err)
 		return
 	}
-
 	defer db.Close()
 
 	// grpc server
@@ -68,24 +69,9 @@ func serverProc(cmd *cobra.Command, args []string) {
 
 	defer gs.GracefulStop()
 
-	mqConnection, err := services.NewMQConnection(cfg.RabbitMQ)
-	if err != nil {
-		logger.Error("new rabbitmq connection failed, err: ", err)
-		return
-	}
-	defer mqConnection.Close()
+	jobManager := job.NewJobManager(cfg.RabbitMQ)
 
-	producer, err := services.NewProducer("server producer", mqConnection)
-	if err != nil {
-		logger.Error("NewProducer failed, err: ", err)
-		return
-	}
-	defer producer.Close()
-
-	svc := services.NewNotificationService(logger, db,
-		producer,
-		cfg.Producer.Exchange,
-		cfg.Producer.RoutingKey)
+	svc := services.NewNotificationService(logger, db, jobManager, cfg.Producer.Queue)
 
 	ctl := controllers.NewServerController(logger, svc)
 	pb.RegisterMsgNotificationServer(gs, ctl)

@@ -1,7 +1,10 @@
 package services
 
 import (
+	"context"
 	"fmt"
+
+	"github.com/fpay/foundation-go"
 
 	"github.com/fpay/foundation-go/log"
 
@@ -9,15 +12,15 @@ import (
 )
 
 // NewSenderService return target channel service interface.
-func NewSenderService(logger *log.Logger, msgType string, sendToolCfg notice.SendServiceConfig, pc notice.ProducerInterface, exRouting notice.ProducerConfig) SenderService {
+func NewSenderService(logger *log.Logger, msgType string, sendToolCfg notice.SendServiceConfig, pc foundation.JobManager) SenderService {
 
 	switch msgType {
 	case NoticeTypeWeChat:
-		return NewWeChatSenderService(logger, sendToolCfg, pc, exRouting)
+		return NewWeChatSenderService(logger, sendToolCfg, pc)
 	case NoticeTypeMail:
-		return NewMailSenderService(logger, sendToolCfg, pc, exRouting)
+		return NewMailSenderService(logger, sendToolCfg, pc)
 	case NoticeTypePhone:
-		return NewPhoneSenderService(logger, sendToolCfg, pc, exRouting)
+		return NewPhoneSenderService(logger, sendToolCfg, pc)
 	default:
 		panic(fmt.Sprintf("Unknown MsgType: %s", msgType))
 	}
@@ -25,5 +28,5 @@ func NewSenderService(logger *log.Logger, msgType string, sendToolCfg notice.Sen
 
 // SenderService sender message to target channel service interface.
 type SenderService interface {
-	Handler(msg *notice.UserMessage) error
+	Handler(ctx context.Context, msg *notice.UserMessage) error
 }

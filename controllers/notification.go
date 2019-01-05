@@ -2,12 +2,14 @@ package controllers
 
 import (
 	"encoding/json"
+	"time"
+
+	"github.com/fpay/foundation-go"
 
 	"github.com/owenliu1122/notice/pb"
 	"github.com/owenliu1122/notice/services"
 
 	"github.com/fpay/foundation-go/log"
-	"github.com/streadway/amqp"
 	"golang.org/x/net/context"
 )
 
@@ -26,18 +28,23 @@ func NewNotificationController(logger *log.Logger, mqSvc *services.MqSendService
 }
 
 // Handler parse rabbitmq notifications.
-func (ctl *NotificationController) Handler(ctx context.Context, msg *amqp.Delivery) {
-	var err error
+func (ctl *NotificationController) Handler(ctx context.Context, job foundation.Jobber) (err error) {
+
 	record := &pb.MsgNotificationRequest{}
 
-	err = json.Unmarshal(msg.Body, record)
+	err = json.Unmarshal(job.Body(), record)
 	if err != nil {
 		ctl.logger.Error("Unmarshal MsgNotificationRequest Body failed, err: ", err)
 		return
 	}
 
-	err = ctl.mqSvc.Send(record)
+	err = ctl.mqSvc.Send(ctx, record)
 	if err != nil {
 		ctl.logger.Error("mqSvc.Send record failed, err: ", err)
+		return
 	}
+
+	time.Sleep(5 * time.Second)
+
+	return
 }

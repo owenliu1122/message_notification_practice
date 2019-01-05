@@ -19,6 +19,7 @@ type ServerController struct {
 func NewServerController(logger *log.Logger, notifySrv *services.NotificationService) *ServerController {
 	return &ServerController{
 		//mqChan:    mqChan,
+		logger:    logger,
 		notifySrv: notifySrv,
 	}
 }
@@ -28,7 +29,7 @@ func (c *ServerController) CheckIn(ctx context.Context, request *pb.MsgNotificat
 
 	c.logger.Debug(request.Content)
 
-	if e := c.notifySrv.Create(request); e != nil {
+	if e := c.notifySrv.Create(ctx, request); e != nil {
 		c.logger.Error("Insert record failed: ", e.Error())
 	}
 
