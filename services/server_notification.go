@@ -14,21 +14,21 @@ import (
 )
 
 // NewNotificationService returns a notification record operation service.
-func NewNotificationService(logger *log.Logger, db *database.DB, pc foundation.JobManager, queue string) *NotificationService {
+func NewNotificationService(logger *log.Logger, db *database.DB, pc foundation.JobManager, queueCfg notice.JobConfig) *NotificationService {
 	return &NotificationService{
-		logger: logger,
-		db:     db,
-		pc:     pc,
-		job:    &Job{Q: queue},
+		logger:   logger,
+		db:       db,
+		pc:       pc,
+		queueCfg: queueCfg,
 	}
 }
 
 // NotificationService is a notification record operation service.
 type NotificationService struct {
-	logger *log.Logger
-	db     *database.DB
-	pc     foundation.JobManager
-	job    *Job
+	logger   *log.Logger
+	db       *database.DB
+	pc       foundation.JobManager
+	queueCfg notice.JobConfig
 }
 
 // Create a notification record.
@@ -48,10 +48,16 @@ func (u *NotificationService) Create(ctx context.Context, pbReq *pb.MsgNotificat
 		return err
 	}
 
-	u.job.Message = pbReq
-	err = u.pc.Dispatch(ctx, u.job)
+	err = u.pc.Dispatch(ctx, &Job{
+		Q:       u.queueCfg.Queue,
+		Message: pbReq,
+	})
 	if err != nil {
-		return err
+		return u.pc.Dispatch(ctx, &Job{
+			Q:       u.queueCfg.Queue,
+			D:       u.queueCfg.Delay,
+			Message: pbReq,
+		})
 	}
 
 	return err

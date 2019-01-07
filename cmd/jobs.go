@@ -69,6 +69,7 @@ func notificationProc(cmd *cobra.Command, args []string) {
 	defer db.Close()
 
 	jobManager := job.NewJobManager(cfg.RabbitMQ)
+	defer jobManager.Close()
 
 	mqSendSvc := services.NewMqSendService(logger, jobManager, services.NewGroupService(logger, db, cache), cfg.Producer)
 
@@ -112,6 +113,7 @@ func senderProc(cmd *cobra.Command, args []string) {
 	logger.Info("Start Jobs Sender!")
 
 	jobManager := job.NewJobManager(cfg.RabbitMQ)
+	defer jobManager.Close()
 
 	sendSvc := services.NewSenderService(logger, jobsCmdType, cfg.SendService, jobManager)
 	ctl := controllers.NewSenderController(logger, cfg.RetryDelay, sendSvc)

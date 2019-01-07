@@ -6,9 +6,3 @@ type Job struct {
 	Q       string      // Queue name
 	D       int         // Delay time
 }
-
-type JobInterface interface {
-	Queue() string
-	Delay() int
-	Marshal() ([]byte, error)
-}

@@ -70,8 +70,9 @@ func serverProc(cmd *cobra.Command, args []string) {
 	defer gs.GracefulStop()
 
 	jobManager := job.NewJobManager(cfg.RabbitMQ)
+	defer jobManager.Close()
 
-	svc := services.NewNotificationService(logger, db, jobManager, cfg.Producer.Queue)
+	svc := services.NewNotificationService(logger, db, jobManager, cfg.Producer)
 
 	ctl := controllers.NewServerController(logger, svc)
 	pb.RegisterMsgNotificationServer(gs, ctl)

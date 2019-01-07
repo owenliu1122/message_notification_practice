@@ -21,25 +21,19 @@ const (
 
 // MqSendService is mq send service.
 type MqSendService struct {
-	logger *log.Logger
-	grpSvc *GroupService
-	pc     foundation.JobManager
-	job    map[string]*Job
+	logger   *log.Logger
+	grpSvc   *GroupService
+	pc       foundation.JobManager
+	queueCfg map[string]notice.JobConfig
 }
 
 // NewMqSendService returns a mq send service.
 func NewMqSendService(logger *log.Logger, pc foundation.JobManager, grpSvc *GroupService, jobCfg map[string]notice.JobConfig) *MqSendService {
 	svc := MqSendService{
-		logger: logger,
-		pc:     pc,
-		grpSvc: grpSvc,
-		job:    make(map[string]*Job),
-	}
-	for k := range jobCfg {
-		svc.job[k] = &Job{
-			Q: jobCfg[k].Queue,
-			D: jobCfg[k].Delay,
-		}
+		logger:   logger,
+		pc:       pc,
+		grpSvc:   grpSvc,
+		queueCfg: jobCfg,
 	}
 
 	return &svc
@@ -80,13 +74,16 @@ func (svc *MqSendService) Send(ctx context.Context, record *pb.MsgNotificationRe
 				return fmt.Errorf("unknown notice type: %s", strType)
 			}
 
-			job, ok := svc.job[strType]
+			queueCfg, ok := svc.queueCfg[strType]
 			if !ok {
 				return fmt.Errorf("get producer config failed, Unknown notice type: %s", strType)
 			}
 
-			job.Message = &userMsg
-			if err = svc.pc.Dispatch(ctx, job); err != nil {
+			if err = svc.pc.Dispatch(ctx, &Job{
+				Q:       queueCfg.Queue,
+				D:       queueCfg.Delay,
+				Message: &userMsg,
+			}); err != nil {
 				return err
 			}
 		}

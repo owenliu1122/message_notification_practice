@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"encoding/json"
-	"time"
 
 	"github.com/fpay/foundation-go"
 
@@ -28,23 +27,21 @@ func NewNotificationController(logger *log.Logger, mqSvc *services.MqSendService
 }
 
 // Handler parse rabbitmq notifications.
-func (ctl *NotificationController) Handler(ctx context.Context, job foundation.Jobber) (err error) {
-
+func (ctl *NotificationController) Handler(ctx context.Context, job foundation.Jobber) error {
+	var err error
 	record := &pb.MsgNotificationRequest{}
 
 	err = json.Unmarshal(job.Body(), record)
 	if err != nil {
 		ctl.logger.Error("Unmarshal MsgNotificationRequest Body failed, err: ", err)
-		return
+		return err
 	}
 
 	err = ctl.mqSvc.Send(ctx, record)
 	if err != nil {
 		ctl.logger.Error("mqSvc.Send record failed, err: ", err)
-		return
+		return job.Retry(ctx, 3)
 	}
 
-	time.Sleep(5 * time.Second)
-
-	return
+	return err
 }
